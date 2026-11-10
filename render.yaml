@@ -1,0 +1,6 @@
+services:
+  - type: web
+    runtime: static
+    name: rescue-paxsi
+    buildCommand: "echo 'No build step required'"
+    staticPublishPath: .
