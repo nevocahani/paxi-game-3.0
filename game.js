@@ -73,8 +73,11 @@
     const prepare = () => {
       assets.paxsiPixels[index] = makePixelSprite(source);
       if (assets.paxsiPixels[index]) {
-        if (index === 0) $("intro-paxsi").src = assets.paxsiPixels[index].toDataURL();
-        if (state?.done && index === 0) $("paxsi-image").src = assets.paxsiPixels[index].toDataURL();
+        const spriteUrl = assets.paxsiPixels[index].toDataURL();
+        const introImage = $("intro-paxsi") || document.querySelector(".intro-icon img");
+        const endingImageElement = $("paxsi-image");
+        if (index === 0 && introImage) introImage.src = spriteUrl;
+        if (state?.done && index === 0 && endingImageElement) endingImageElement.src = spriteUrl;
       }
     };
     if (source.complete) prepare(); else source.addEventListener("load", prepare, { once: true });
@@ -294,7 +297,8 @@
     if (state.done) return;
     state.done = true; state.started = true; save();
     $("ending-overlay").classList.remove("hidden");
-    $("paxsi-image").src = paxsiDataUrl(endingImage % assets.paxsi.length);
+    const endingImageElement = $("paxsi-image");
+    if (endingImageElement) endingImageElement.src = paxsiDataUrl(endingImage % assets.paxsi.length);
   }
   function startGame() { state.started = true; $("start-overlay").classList.add("hidden"); save(); }
   function resetGame() { state = freshState(); player.x = 46; player.y = 225; player.vy = 0; player.grounded = true; localStorage.removeItem(storageKey); $("ending-overlay").classList.add("hidden"); $("quiz-overlay").classList.add("hidden"); quizOpen = false; updateHud(); $("start-overlay").classList.remove("hidden"); }
@@ -313,6 +317,10 @@
   $("reset-button").addEventListener("click", () => { if (window.confirm("Reset all saved mission progress and start over?")) resetGame(); });
   $("play-again").addEventListener("click", resetGame);
   if (state.started) $("start-overlay").classList.add("hidden");
-  if (state.done) { $("ending-overlay").classList.remove("hidden"); $("paxsi-image").src = paxsiDataUrl(0); }
+  if (state.done) {
+    $("ending-overlay").classList.remove("hidden");
+    const endingImageElement = $("paxsi-image");
+    if (endingImageElement) endingImageElement.src = paxsiDataUrl(0);
+  }
   updateHud(); requestAnimationFrame(draw);
 })();
