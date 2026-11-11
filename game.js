@@ -109,12 +109,13 @@
     };
     if (source.complete) prepare(); else source.addEventListener("load", prepare, { once: true });
   });
-  function freshState() { return { started: false, room: 0, stages: data.rooms.map(() => 0), x: 82, done: false }; }
+  function freshState() { return { started: false, room: 0, stages: data.rooms.map(() => 0), evidence: data.rooms.map((entry) => entry.challenges.map(() => false)), x: 82, done: false }; }
   function loadState() {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey));
       if (!saved || !Array.isArray(saved.stages) || saved.stages.length !== data.rooms.length) return freshState();
-      return { ...freshState(), ...saved, stages: saved.stages.map((n, i) => Math.max(0, Math.min(data.rooms[i].challenges.length, Number(n) || 0))), room: Math.max(0, Math.min(data.rooms.length - 1, Number(saved.room) || 0)) };
+      const fresh = freshState();
+      return { ...fresh, ...saved, stages: saved.stages.map((n, i) => Math.max(0, Math.min(data.rooms[i].challenges.length, Number(n) || 0))), evidence: fresh.evidence.map((roomEvidence, i) => roomEvidence.map((_, j) => Boolean(saved.evidence?.[i]?.[j]))), room: Math.max(0, Math.min(data.rooms.length - 1, Number(saved.room) || 0)) };
     } catch { return freshState(); }
   }
   state = loadState();
@@ -140,6 +141,7 @@
   let endingImage = 0;
   const room = () => data.rooms[state.room];
   const stage = () => room().challenges[state.stages[state.room]];
+  const evidenceFound = (roomIndex = state.room, challengeIndex = state.stages[state.room]) => Boolean(state.evidence?.[roomIndex]?.[challengeIndex]);
   const roomComplete = (index = state.room) => state.stages[index] >= data.rooms[index].challenges.length;
   function save() { state.x = Math.round(player.x); try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch {} }
   function paxsiDataUrl(index = 0) {
@@ -203,6 +205,7 @@
       if (assets.groundFill.complete && assets.groundFill.naturalWidth) ctx.drawImage(assets.groundFill, x, 257, 32, 32);
     }
     drawFieldProps(time, p.accent);
+    drawMissionSetpiece(roomIndex, time);
     // Artemis I opens at the crew's lander. The source art's dark backdrop is keyed out above.
     if (roomIndex === 0) {
       if (assets.landerPixels) {
@@ -240,6 +243,10 @@
       const bob = isDoorOpen ? 0 : Math.round(Math.sin(time / 360) * 1);
       ctx.drawImage(paxsiSprite, (roomIndex === 0 ? 350 : 318) - 16, 193 + bob, 32, 32);
     }
+    const challenge = stage();
+    const artifact = challenge?.artifact;
+    const needsEvidence = Boolean(artifact && !evidenceFound());
+    if (needsEvidence) drawFieldArtifact(artifact, time, p.accent);
     // Character sprite; provided frames are 32x32 and kept crisp on the canvas.
     const moving = activeKeys.has("ArrowRight") || activeKeys.has("d") || activeKeys.has("ArrowLeft") || activeKeys.has("a");
     const jumping = !player.grounded;
@@ -251,11 +258,62 @@
     if (sprite?.complete && sprite.naturalWidth) ctx.drawImage(sprite, Math.round(player.x - 16), Math.round(player.y - 28), 32, 32);
     else { ctx.fillStyle = "#d4e5ed"; ctx.fillRect(player.x - 6, player.y - 25, 12, 25); ctx.fillStyle = "#cf554c"; ctx.fillRect(player.x - 6, player.y - 22, 12, 5); }
     // Clear, readable HTML speech and interaction bubbles sit above the pixel scene.
-    const targetX = roomComplete() ? doorX : consoleX;
-    const canInteract = Math.abs(player.x - targetX) < 37 && player.grounded;
-    updateWorldDialogue(canInteract, targetX);
+    const targetX = roomComplete() ? doorX : needsEvidence ? artifact.x : consoleX;
+    const canInteract = !needsEvidence && Math.abs(player.x - targetX) < 37 && player.grounded;
+    if (needsEvidence && Math.abs(player.x - artifact.x) < 23 && player.grounded) {
+      state.evidence[state.room][state.stages[state.room]] = true;
+      save(); showQuiz();
+    }
+    updateWorldDialogue(canInteract, targetX, needsEvidence ? artifact : null);
     // A faint beacon marks the console if the player is far away.
     if (!roomComplete() && !canInteract) { ctx.globalAlpha = .55 + Math.sin(time / 220) * .2; ctx.fillStyle = p.accent; ctx.fillRect(consoleX - 1, 182, 2, 2); ctx.globalAlpha = 1; }
+  }
+
+  function drawMissionSetpiece(roomIndex, time) {
+    if (roomIndex === 1) {
+      // Artemis II orbital operations board: a moving crewed trajectory around the Moon.
+      ctx.fillStyle = "#111a24"; ctx.fillRect(24, 66, 100, 61);
+      ctx.fillStyle = "#7d9a98"; ctx.fillRect(22, 64, 104, 3); ctx.fillRect(22, 127, 104, 3);
+      ctx.fillStyle = "#3398bd"; ctx.fillRect(37, 83, 18, 18); ctx.fillStyle = "#b3e3df"; ctx.fillRect(43, 79, 8, 4);
+      ctx.fillStyle = "#b9b1a2"; ctx.fillRect(91, 76, 15, 15); ctx.fillStyle = "#e2d6bd"; ctx.fillRect(95, 72, 7, 4);
+      ctx.strokeStyle = "#b6d27d"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(73, 91, 35, 17, -.25, .1, Math.PI * 1.9); ctx.stroke();
+      const dotX = 73 + Math.cos(time / 900) * 34, dotY = 91 + Math.sin(time / 900) * 15;
+      ctx.fillStyle = "#ffe08a"; ctx.fillRect(dotX - 2, dotY - 2, 5, 5);
+      ctx.fillStyle = "#586a68"; ctx.fillRect(39, 130, 6, 95); ctx.fillRect(105, 130, 6, 95);
+    } else if (roomIndex === 2) {
+      // Artemis III lander test bay, docking target, and bright work lights.
+      ctx.fillStyle = "#273245"; ctx.fillRect(48, 143, 5, 82); ctx.fillRect(148, 143, 5, 82); ctx.fillRect(44, 141, 113, 4);
+      ctx.fillStyle = "#82908a"; ctx.fillRect(57, 151, 38, 34); ctx.fillRect(53, 148, 46, 4);
+      ctx.fillStyle = "#f2c75d"; ctx.fillRect(68, 158, 17, 18); ctx.fillRect(63, 176, 5, 7); ctx.fillRect(85, 176, 5, 7);
+      ctx.fillStyle = "#263f49"; ctx.fillRect(308, 86, 104, 55); ctx.fillStyle = "#a7dfe0"; ctx.fillRect(324, 101, 72, 4); ctx.fillRect(356, 89, 5, 49);
+      ctx.fillStyle = "#ffe08a"; ctx.fillRect(351, 111, 15, 5); ctx.fillRect(356, 106, 5, 15);
+      ctx.fillStyle = "#59677b"; ctx.fillRect(322, 141, 8, 84); ctx.fillRect(392, 141, 8, 84);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawFieldArtifact(artifact, time, accent) {
+    const x = Math.round(artifact.x), y = 195, blink = .68 + .32 * Math.sin(time / 190);
+    ctx.globalAlpha = blink;
+    ctx.fillStyle = accent; ctx.fillRect(x - 11, 220, 22, 3); ctx.fillRect(x - 7, 216, 14, 3);
+    ctx.fillStyle = "#16212a"; ctx.fillRect(x - 10, y, 20, 20);
+    ctx.fillStyle = accent; ctx.fillRect(x - 12, y - 2, 24, 2); ctx.fillRect(x - 12, y + 20, 24, 2);
+    if (artifact.icon === "recorder") {
+      ctx.fillStyle = "#9fb0b8"; ctx.fillRect(x - 6, y + 3, 12, 14); ctx.fillStyle = "#b9e6cf"; ctx.fillRect(x - 4, y + 5, 8, 6); ctx.fillStyle = "#efb26f"; ctx.fillRect(x - 3, y + 13, 6, 2);
+    } else if (artifact.icon === "manifest") {
+      ctx.fillStyle = "#e7e3ce"; ctx.fillRect(x - 6, y + 3, 12, 14); ctx.fillStyle = "#78867e"; ctx.fillRect(x - 3, y + 6, 7, 1); ctx.fillRect(x - 3, y + 9, 7, 1); ctx.fillRect(x - 3, y + 12, 5, 1);
+    } else if (artifact.icon === "life-support") {
+      ctx.fillStyle = "#72c8d2"; ctx.fillRect(x - 6, y + 5, 5, 11); ctx.fillRect(x + 1, y + 5, 5, 11); ctx.fillStyle = "#d8e4a0"; ctx.fillRect(x - 5, y + 3, 3, 2); ctx.fillRect(x + 2, y + 3, 3, 2);
+    } else if (artifact.icon === "map") {
+      ctx.fillStyle = "#d5d8c9"; ctx.fillRect(x - 7, y + 4, 14, 12); ctx.fillStyle = accent; ctx.fillRect(x - 5, y + 9, 3, 2); ctx.fillRect(x - 2, y + 6, 3, 2); ctx.fillRect(x + 1, y + 8, 3, 2); ctx.fillRect(x + 4, y + 5, 2, 2);
+    } else if (artifact.icon === "beacon") {
+      ctx.fillStyle = "#efb26f"; ctx.fillRect(x - 2, y + 4, 4, 12); ctx.fillRect(x - 5, y + 2, 10, 4); ctx.fillStyle = "#fff0a6"; ctx.fillRect(x - 2, y + 1, 4, 3);
+    } else if (artifact.icon === "lander") {
+      ctx.fillStyle = "#f2c75d"; ctx.fillRect(x - 5, y + 5, 10, 8); ctx.fillRect(x - 7, y + 13, 3, 3); ctx.fillRect(x + 4, y + 13, 3, 3); ctx.fillStyle = "#a7dfe0"; ctx.fillRect(x - 2, y + 6, 4, 3);
+    } else if (artifact.icon === "target") {
+      ctx.fillStyle = "#e6dcbf"; ctx.fillRect(x - 6, y + 3, 12, 2); ctx.fillRect(x - 6, y + 15, 12, 2); ctx.fillRect(x - 6, y + 3, 2, 14); ctx.fillRect(x + 4, y + 3, 2, 14); ctx.fillStyle = "#e77a6b"; ctx.fillRect(x - 2, y + 8, 5, 5);
+    }
+    ctx.globalAlpha = 1;
   }
 
   function drawFieldProps(time, accent) {
@@ -290,7 +348,7 @@
     ctx.globalAlpha = 1;
   }
 
-  function updateWorldDialogue(canInteract, targetX) {
+  function updateWorldDialogue(canInteract, targetX, artifact = null) {
     const bubble = $("world-dialogue"), prompt = $("world-interact");
     if (!gameActive || quizOpen || state.done) {
       bubble.classList.add("hidden"); prompt.classList.add("hidden"); return;
@@ -298,8 +356,11 @@
     const paxsiX = state.room === 0 ? 350 : 318;
     const nearPaxsi = Math.abs(player.x - paxsiX) < 61;
     const nearLander = state.room === 0 && Math.abs(player.x - 82) < 48;
+    const nearArtifact = artifact && Math.abs(player.x - artifact.x) < 52;
     const speaker = nearPaxsi ? "PAXSI" : "MISSION CONTROL";
-    const line = nearPaxsi ? room().paxsiLine : nearLander
+    const line = nearPaxsi ? room().paxsiLine : nearArtifact
+      ? `You found the ${artifact.name}. Moving closer will scan its mission data.`
+      : nearLander
       ? "Exit the lander and take the stairs down to the mission console."
       : roomComplete()
       ? "The next airlock is open. Come on!"
@@ -308,14 +369,19 @@
     if ($("world-dialogue-text").textContent !== line) $("world-dialogue-text").textContent = line;
     $("world-paxsi").classList.toggle("hidden", !nearPaxsi);
     bubble.dataset.speaker = nearPaxsi ? "paxsi" : "control";
-    bubble.style.left = `${(nearPaxsi ? paxsiX : nearLander ? 82 : targetX) / canvas.width * 100}%`;
-    bubble.classList.toggle("hidden", !nearPaxsi && !nearLander && !canInteract);
-    prompt.classList.toggle("hidden", !canInteract);
+    bubble.style.left = `${(nearPaxsi ? paxsiX : nearArtifact || artifact ? artifact.x : nearLander ? 82 : targetX) / canvas.width * 100}%`;
+    bubble.classList.toggle("hidden", !nearPaxsi && !nearLander && !nearArtifact && !canInteract);
+    prompt.classList.toggle("hidden", !canInteract && !nearArtifact);
     if (canInteract) {
+      $("world-interact-key").textContent = "E";
     prompt.style.left = `${Math.min(82, targetX / canvas.width * 100)}%`;
       $("world-interact-text").textContent = roomComplete()
         ? (state.room === data.rooms.length - 1 ? "RESCUE PAXSI" : "ENTER NEXT ROOM")
         : "OPEN MISSION BRIEFING";
+    } else if (nearArtifact) {
+      $("world-interact-key").textContent = "✦";
+      prompt.style.left = `${Math.min(82, artifact.x / canvas.width * 100)}%`;
+      $("world-interact-text").textContent = `SCAN ${artifact.name.toUpperCase()}`;
     }
   }
 
@@ -360,7 +426,13 @@
       item.append(num, desc, check); list.append(item);
     });
     const all = state.stages.reduce((n, x, i) => n + (x >= data.rooms[i].challenges.length ? 1 : 0), 0);
-    $("objective-text").textContent = roomComplete() ? (state.room < data.rooms.length - 1 ? "Door unlocked. Press E at the exit to continue." : "All missions cleared. Paxsi is just ahead!") : "Find the mission console and press E.";
+    const currentChallenge = stage();
+    const neededArtifact = currentChallenge?.artifact && !evidenceFound() ? currentChallenge.artifact : null;
+    $("objective-text").textContent = roomComplete()
+      ? (state.room < data.rooms.length - 1 ? "Door unlocked. Press E at the exit to continue." : "All missions cleared. Paxsi is just ahead!")
+      : neededArtifact ? `Search this room for the ${neededArtifact.name}. Move close to scan it.`
+      : currentChallenge?.artifact ? "Evidence recovered. Return to the console to reopen the briefing."
+      : "Find the mission console and press E.";
     $("status-text").textContent = state.done ? "PAXSI RESCUED" : roomComplete() ? "EXIT UNLOCKED" : "SYSTEMS NOMINAL";
     $("status-chip").querySelector(".status-light").style.background = state.done ? "#c7f36b" : roomComplete() ? "#8bd9f5" : "#c7f36b";
     if (all === data.rooms.length && !state.done) finishGame();
@@ -379,6 +451,12 @@
     $("lesson-title").textContent = challenge.title;
     $("lesson-body").textContent = challenge.lesson || "Review the mission notes, then use what you learned to answer.";
     $("paxsi-lesson").textContent = challenge.paxsiTip || "Take a breath, read the briefing, and look for the clue that matches the mission.";
+    const evidenceCard = $("evidence-found");
+    if (challenge.artifact && evidenceFound()) {
+      evidenceCard.classList.remove("hidden");
+      $("evidence-title").textContent = challenge.artifact.name;
+      $("evidence-clue").textContent = challenge.artifact.clue;
+    } else evidenceCard.classList.add("hidden");
     const briefingPaxsi = $("briefing-paxsi");
     const paxsiSprite = assets.paxsiPixels[0];
     if (briefingPaxsi && paxsiSprite) briefingPaxsi.src = paxsiSprite.toDataURL();
@@ -424,6 +502,7 @@
         state.stages[state.room] += 1;
         if (roomComplete() && state.room === data.rooms.length - 1) finishGame();
         save(); closeQuiz(); updateHud();
+        if (!state.done && !roomComplete() && !stage().artifact) showQuiz();
       }, 750);
       return;
     }
@@ -449,6 +528,7 @@
   }
   function interact() {
     if (!gameActive || state.done || quizOpen) return;
+    if (!roomComplete() && stage()?.artifact && !evidenceFound()) return;
     const targetX = roomComplete() ? 435 : missionConsoleX();
     if (Math.abs(player.x - targetX) >= 37) return;
     if (roomComplete()) advanceRoom(); else showQuiz();
