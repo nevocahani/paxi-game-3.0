@@ -22,7 +22,7 @@ window.GAME_DATA = {
             "See whether the Zippy Tribe could survive inside a human spacecraft."
           ],
           answerIndex: 1,
-          source: "https://www.nasa.gov/missions/artemis/artemis-i/"
+          source: "https://www.nasa.gov/mission/artemis-i/"
         },
         {
           type: "question",
@@ -32,7 +32,7 @@ window.GAME_DATA = {
           prompt: "About how fast was Orion traveling when it re-entered Earth's atmosphere and tested its heat shield?",
           options: ["10,000 km/h", "40,000 km/h", "100,000 km/h"],
           answerIndex: 1,
-          source: "https://www.nasa.gov/missions/artemis/artemis-i/"
+          source: "https://www.nasa.gov/mission/artemis-i/"
         },
         {
           type: "code",
@@ -66,7 +66,7 @@ window.GAME_DATA = {
             "An immediate docking with the International Space Station."
           ],
           answerIndex: 0,
-          source: "https://www.nasa.gov/missions/artemis/artemis-2/"
+          source: "https://www.nasa.gov/mission/artemis-ii/"
         },
         {
           type: "question",
@@ -81,7 +81,7 @@ window.GAME_DATA = {
             "NASA, ESA, and the Canadian Space Agency."
           ],
           answerIndex: 0,
-          source: "https://www.nasa.gov/missions/artemis/artemis-2/"
+          source: "https://www.nasa.gov/mission/artemis-ii/"
         },
         {
           type: "question",
@@ -96,7 +96,7 @@ window.GAME_DATA = {
             "A permanent nuclear power station for the Moon."
           ],
           answerIndex: 1,
-          source: "https://www.nasa.gov/missions/artemis/artemis-2/"
+          source: "https://www.nasa.gov/mission/artemis-ii/"
         },
         {
           type: "question",
@@ -111,7 +111,7 @@ window.GAME_DATA = {
             "It sent Orion directly to the International Space Station."
           ],
           answerIndex: 0,
-          source: "https://www.nasa.gov/missions/artemis/artemis-2/"
+          source: "https://www.nasa.gov/mission/artemis-ii/"
         },
         {
           type: "question",
@@ -121,7 +121,7 @@ window.GAME_DATA = {
           prompt: "In which ocean did Orion splash down after Artemis II?",
           options: ["The Atlantic Ocean", "The Indian Ocean", "The Pacific Ocean", "The Arctic Ocean"],
           answerIndex: 2,
-          source: "https://www.nasa.gov/missions/artemis/artemis-2/"
+          source: "https://www.nasa.gov/mission/artemis-ii/"
         }
       ]
     },
