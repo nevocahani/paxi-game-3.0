@@ -66,3 +66,17 @@ body{background:#111a20;font-family:var(--sans)}
 .paxsi-frame{width:78px;height:78px;margin:15px auto 11px;border:0;background:transparent;box-shadow:none}
 .paxsi-frame img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;background:transparent}
 @media(max-width:700px){.side-panel{padding:14px}.below-stage{margin-top:12px}.panel-title{font-size:11px}}
+.lesson-view{padding:2px 0 1px}
+.lesson-tag{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:8px;letter-spacing:.06em;color:#cbd394;margin:1px 0 10px}
+.lesson-mark{font-size:12px;color:var(--orange)}
+.lesson-rule{height:1px;flex:1;background:#64705a66;margin-left:4px}
+.lesson-view h2,.question-view h2{font-size:21px;margin:0 0 8px;line-height:1.15}
+.lesson-body{font-size:12px;line-height:1.65;color:#d1d0c5;margin:0 0 13px}
+.paxsi-lesson{display:flex;align-items:center;gap:11px;padding:10px 11px;margin:0 0 14px;background:#222e30;border:1px solid #46534a;border-left:3px solid #c9d77b}
+.paxsi-lesson img{flex:0 0 40px;width:40px;height:40px;object-fit:contain;image-rendering:pixelated;background:transparent}
+.paxsi-lesson .mini-label{color:#c9d77b}
+.paxsi-lesson p{font-size:10px;line-height:1.5;color:#c3c9bd;margin:0}
+.lesson-continue{display:block;margin-left:auto;min-width:145px}
+.question-view{padding-top:1px}
+.question-view .quiz-prompt{margin-bottom:13px}
+@media(max-width:700px){.lesson-view h2,.question-view h2{font-size:18px}.lesson-body{font-size:10px}.paxsi-lesson{gap:8px;padding:8px;margin-bottom:10px}.paxsi-lesson img{width:34px;height:34px;flex-basis:34px}.paxsi-lesson p{font-size:9px}.lesson-continue{min-width:130px;padding:10px 12px}}
