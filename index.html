@@ -7,9 +7,9 @@
     <meta name="description" content="A pixel-art Artemis space escape room. Help the astronauts rescue Paxi!" />
     <title>Rescue Paxi! — Artemis Escape Room</title>
     <link rel="icon" type="image/png" href="logo-pixelart-512-preview.png" />
-    <link rel="stylesheet" href="styles.css" />
-    <script src="questions.js?v=2026-11-10-3" defer></script>
-    <script src="game.js?v=2026-11-10-3" defer></script>
+    <link rel="stylesheet" href="styles.css?v=2026-11-11-3" />
+    <script src="questions.js?v=2026-11-11-3" defer></script>
+    <script src="game.js?v=2026-11-11-3" defer></script>
   </head>
   <body>
     <main class="shell">
@@ -30,10 +30,15 @@
           </div>
 
           <div class="canvas-wrap" id="game-wrap">
-            <canvas id="game" width="480" height="270" aria-label="Pixel-art game. Use arrow keys or A and D to move, Space to jump, and E to interact."></canvas>
+            <canvas id="game" width="480" height="270" tabindex="0" aria-label="Pixel-art game. Use A and D or the arrow keys to move, Space to jump, and E to interact."></canvas>
             <div class="canvas-scanlines" aria-hidden="true"></div>
             <div class="canvas-hud"><span><i class="hud-dot"></i> LIVE FEED</span><span id="hud-progress">DATA 00%</span></div>
             <div class="canvas-hint" id="canvas-hint">MOVE <kbd>A</kbd><kbd>D</kbd> &nbsp; JUMP <kbd>SPACE</kbd> &nbsp; INTERACT <kbd>E</kbd></div>
+            <div class="world-dialogue hidden" id="world-dialogue" aria-live="polite">
+              <img id="world-paxsi" src="paxi/WhatsApp%20Image%202026-11-10%20at%2015.55.55.jpeg" alt="" />
+              <div><span class="world-speaker" id="world-speaker">PAXSI</span><p id="world-dialogue-text"></p></div>
+            </div>
+            <div class="world-interact hidden" id="world-interact"><kbd>E</kbd><span id="world-interact-text">READ MISSION BRIEF</span></div>
             <div class="overlay start-overlay" id="start-overlay">
               <div class="overlay-card intro-card">
                 <div class="card-kicker"><span class="alert-pip"></span> INCOMING TRANSMISSION · 02:14 UTC</div>
@@ -41,7 +46,7 @@
                 <h2>Rescue <em>Paxi.</em></h2>
                 <p>Your crew crash-landed near the Moon. The Zippy Tribe has captured your friend Paxi, their teacher. They will only release her if you pass their Artemis mission test.</p>
                 <div class="briefing-row"><span>YOUR MISSION</span><b>Clear 3 rooms. Crack the code. Bring Paxi home.</b></div>
-                <button class="primary-button" id="start-button" type="button">START MISSION <span>→</span></button>
+                <button class="primary-button" id="start-button" type="button"><span id="start-label">START MISSION</span><span>→</span></button>
                 <div class="control-note">MOVE <kbd>A</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>→</kbd> &nbsp; JUMP <kbd>SPACE</kbd> &nbsp; INTERACT <kbd>E</kbd></div>
               </div>
             </div>
@@ -52,10 +57,13 @@
                 <section class="lesson-view" id="lesson-view" aria-labelledby="lesson-title">
                   <div class="lesson-tag"><span class="lesson-mark">✳</span> BEFORE THE QUESTION <span class="lesson-rule"></span></div>
                   <h2 id="lesson-title">Mission briefing</h2>
-                  <p class="lesson-body" id="lesson-body"></p>
-                  <div class="paxsi-lesson">
+                  <div class="mission-speech speech-bubble">
+                    <span class="speech-speaker">MISSION CONTROL</span>
+                    <p class="lesson-body" id="lesson-body"></p>
+                  </div>
+                  <div class="paxsi-lesson speech-bubble">
                     <img id="briefing-paxsi" src="paxi/WhatsApp%20Image%202026-11-10%20at%2015.55.55.jpeg" alt="" />
-                    <div><span class="mini-label">PAXSI ADDS</span><p id="paxsi-lesson"></p></div>
+                    <div><span class="speech-speaker">PAXSI</span><p id="paxsi-lesson"></p></div>
                   </div>
                   <button class="primary-button lesson-continue" id="continue-question" type="button">I'M READY <span>→</span></button>
                 </section>
@@ -91,9 +99,8 @@
             <div class="mission-list" id="mission-list"></div>
           </section>
           <section class="panel-section story-panel">
-            <div class="panel-title"><span>Radio notebook</span><span class="tiny-star">✳</span></div>
+            <div class="panel-title"><span>Mission notes</span><span class="tiny-star">✳</span></div>
             <p id="field-note">A strange signal is coming from the Moon's far side. The Zippy Tribe is guarding the next door.</p>
-            <div class="signal-wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
           </section>
           <section class="panel-section controls-panel">
             <div class="panel-title"><span>Controls</span><span class="panel-index">KEYS</span></div>
@@ -101,7 +108,6 @@
             <div class="key-row"><span class="keycap wide">SPACE</span><span>Jump</span></div>
             <div class="key-row"><span class="keycap">E</span><span>Talk / use console</span></div>
           </section>
-          <div class="paxi-radio"><div class="radio-icon">◉</div><div><span class="mini-label">PAXI ON COMMS</span><b id="radio-line">“Can you hear me out there?”</b></div></div>
           <footer class="side-footer">FIELD NOTES, STARDUST & ONE LOST TEACHER <span>✳</span></footer>
         </aside>
       </section>
