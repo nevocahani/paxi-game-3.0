@@ -6,26 +6,16 @@
     <meta name="theme-color" content="#10151f" />
     <meta name="description" content="A pixel-art Artemis space escape room. Help the astronauts rescue Paxi!" />
     <title>Rescue Paxi! — Artemis Escape Room</title>
-    <link rel="icon" type="image/png" href="logo-pixelart-512-preview.png" />
-    <link rel="stylesheet" href="styles.css?v=2026-11-11-6" />
-    <script src="questions.js?v=2026-11-11-6" defer></scri<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#10151f" />
-    <meta name="description" content="A pixel-art Artemis space escape room. Help the astronauts rescue Paxi!" />
-    <title>Rescue Paxi! — Artemis Escape Room</title>
-    <link rel="icon" type="image/png" href="logo-pixelart-512-preview.png" />
-    <link rel="stylesheet" href="styles.css?v=2026-11-11-7" />
-    <script src="questions.js?v=2026-11-11-7" defer></script>
-    <script src="game.js?v=2026-11-11-7" defer></script>
+    <link rel="icon" type="image/png" href="./logo-pixelart-512-preview.png" />
+    <link rel="stylesheet" href="./styles.css?v=2026-11-11-8" />
+    <script src="./questions.js?v=2026-11-11-9" defer></script>
+    <script src="./game.js?v=2026-11-11-8" defer></script>
   </head>
   <body>
-    <main class="shell">
+    <main class="shell" id="top">
       <header class="topbar">
         <a class="brand" href="#top" aria-label="Rescue Paxi home">
-          <img class="brand-mark-image" src="logo-pixelart-512-preview.png" alt="" />
+          <img class="brand-mark-image" src="./logo-pixelart-512-preview.png" alt="" />
           <span>PAXI RESCUE<span class="brand-light"> / FIELD LOG</span></span>
         </a>
         <div class="top-meta"><span class="live-dot"></span> CREW CHANNEL 08 &nbsp;·&nbsp; EARTH TO MOON</div>
@@ -92,130 +82,6 @@
                     <div class="evidence-stamp">FIELD FIND · SCANNED</div>
                     <b id="evidence-title"></b>
                     <p id="evidence-clue"></p>
-                  </div>
-                  <div class="paxsi-lesson speech-bubble">
-                    <img id="briefing-paxsi" src="paxi/WhatsApp%20Image%202026-11-10%20at%2015.55.55.jpeg" alt="" />
-                    <div><span class="speech-speaker">PAXSI</span><p id="paxsi-lesson"></p></div>
-                  </div>
-                  <button class="primary-button lesson-continue" id="continue-question" type="button">I'M READY <span>→</span></button>
-                </section>
-                <section class="question-view hidden" id="question-view" aria-labelledby="quiz-title">
-                  <h2 id="quiz-title">Mission question</h2>
-                  <p class="quiz-prompt" id="quiz-prompt"></p>
-                  <div class="answer-list" id="answer-list"></div>
-                  <div class="quiz-feedback" id="quiz-feedback" role="status"></div>
-                </section>
-                <div class="quiz-bottom"><span id="attempts-label">ATTEMPTS LEFT: 3</span><a id="source-link" class="source-link hidden" href="#" target="_blank" rel="noreferrer">NASA SOURCE ↗</a><button id="close-quiz" class="text-button" type="button">CLOSE <span>×</span></button></div>
-              </div>
-            </div>
-            <div class="overlay ending-overlay hidden" id="ending-overlay">
-              <div class="overlay-card ending-card">
-                <div class="card-kicker"><span class="success-pip"></span> MISSION COMPLETE</div>
-                <div class="paxi-frame"><img id="paxi-image" alt="Paxi, the rescued alien teacher" /></div>
-                <h2>Paxi is <em>free!</em></h2>
-                <p>The Zippy Tribe releases Paxi. Your crew is ready for the journey home — together.</p>
-                <button class="primary-button" id="play-again" type="button">PLAY AGAIN <span>↺</span></button>
-              </div>
-            </div>
-          </div>
-
-          <div class="below-stage">
-            <div class="objective"><span class="objective-icon">◎</span><div><span class="mini-label">CURRENT OBJECTIVE</span><b id="objective-text">Find the mission console and press E.</b></div></div>
-            <div class="status-chip" id="status-chip"><span class="status-light"></span><span id="status-text">SYSTEMS NOMINAL</span></div>
-          </div>
-        </div>
-
-        <aside class="side-panel">
-          <section class="panel-section mission-panel">
-            <div class="panel-title"><span>Crew's route</span><span class="panel-index">01—03</span></div>
-            <div class="mission-list" id="mission-list"></div>
-          </section>
-          <section class="panel-section story-panel">
-            <div class="panel-title"><span>Mission notes</span><span class="tiny-star">✳</span></div>
-            <p id="field-note">A strange signal is coming from the Moon's far side. The Zippy Tribe is guarding the next door.</p>
-          </section>
-          <section class="panel-section controls-panel">
-            <div class="panel-title"><span>Controls</span><span class="panel-index">KEYS</span></div>
-            <div class="key-row"><span class="keycap">A</span><span class="keycap">D</span><span>Move left / right</span></div>
-            <div class="key-row"><span class="keycap wide">SPACE</span><span>Jump</span></div>
-            <div class="key-row"><span class="keycap">E</span><span>Talk / use console</span></div>
-          </section>
-          <footer class="side-footer">FIELD NOTES, STARDUST & ONE LOST TEACHER <span>✳</span></footer>
-        </aside>
-      </section>
-      <footer class="mobile-footer">A SMALL STEP. A VERY BIG RESCUE. <span>✦</span></footer>
-    </main>
-  </body>
-</html>
-pt>
-    <script src="game.js?v=2026-11-11-6" defer></script>
-  </head>
-  <body>
-    <main class="shell">
-      <header class="topbar">
-        <a class="brand" href="#top" aria-label="Rescue Paxi home">
-          <img class="brand-mark-image" src="logo-pixelart-512-preview.png" alt="" />
-          <span>PAXI RESCUE<span class="brand-light"> / FIELD LOG</span></span>
-        </a>
-        <div class="top-meta"><span class="live-dot"></span> CREW CHANNEL 08 &nbsp;·&nbsp; EARTH TO MOON</div>
-        <button class="text-button" id="reset-button" type="button" title="Clear saved progress">NEW RUN <span aria-hidden="true">↺</span></button>
-      </header>
-
-      <section class="game-layout" aria-label="Artemis escape room game">
-        <div class="stage-column">
-          <div class="stage-heading">
-            <div><p class="eyebrow" id="room-kicker">MISSION 01 / LUNAR ORBIT</p><h1 id="room-title">Artemis I</h1></div>
-            <div class="room-count" id="room-count">ROOM 01 <span>/ 03</span></div>
-          </div>
-
-          <div class="canvas-wrap" id="game-wrap">
-            <canvas id="game" width="480" height="270" tabindex="0" aria-label="Pixel-art game. Use A and D or the arrow keys to move, Space to jump, and E to interact."></canvas>
-            <div class="canvas-scanlines" aria-hidden="true"></div>
-            <div class="canvas-hud"><span><i class="hud-dot"></i> LIVE FEED</span><span id="hud-progress">DATA 00%</span></div>
-            <div class="canvas-hint" id="canvas-hint">MOVE <kbd>A</kbd><kbd>D</kbd> &nbsp; JUMP <kbd>SPACE</kbd> &nbsp; INTERACT <kbd>E</kbd></div>
-            <div class="world-dialogue hidden" id="world-dialogue" aria-live="polite">
-              <img id="world-paxsi" src="paxi/WhatsApp%20Image%202026-11-10%20at%2015.55.55.jpeg" alt="" />
-              <div><span class="world-speaker" id="world-speaker">PAXSI</span><p id="world-dialogue-text"></p></div>
-            </div>
-            <div class="world-interact hidden" id="world-interact"><kbd>E</kbd><span id="world-interact-text">READ MISSION BRIEF</span></div>
-            <div class="overlay start-overlay" id="start-overlay">
-              <div id="intro-step">
-              <div class="overlay-card intro-card">
-                <div class="card-kicker"><span class="alert-pip"></span> INCOMING TRANSMISSION · 02:14 UTC</div>
-                <div class="intro-icon" aria-hidden="true"><img id="intro-paxi" src="paxi/WhatsApp%20Image%202026-11-10%20at%2015.55.55.jpeg" alt="" /></div>
-                <h2>Rescue <em>Paxi.</em></h2>
-                <p>A distress call has reached your crew near the Moon. Open the field report to learn what happened to Paxsi and how to bring her home.</p>
-                <div class="briefing-row"><span>YOUR MISSION</span><b>Clear 3 rooms. Crack the code. Bring Paxi home.</b></div>
-                <button class="primary-button" id="start-button" type="button"><span id="start-label">START MISSION</span><span>→</span></button>
-                <div class="control-note">MOVE <kbd>A</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>→</kbd> &nbsp; JUMP <kbd>SPACE</kbd> &nbsp; INTERACT <kbd>E</kbd></div>
-              </div>
-              </div>
-              <section class="overlay-card story-card hidden" id="story-step" aria-labelledby="story-title">
-                <div class="card-kicker"><span class="alert-pip"></span> MISSION CONTROL · INCIDENT REPORT</div>
-                <div class="story-portrait"><img src="paxi/WhatsApp%20Image%202026-11-10%20at%2015.55.55.jpeg" alt="Paxsi" /></div>
-                <h2 id="story-title">Who is <em>Paxsi?</em></h2>
-                <div class="story-message">
-                  <span class="speech-speaker">MISSION CONTROL</span>
-                  <p>Paxsi is your crew’s close friend—and the Zippy Tribe’s teacher. Your team crash-landed near the Moon, and the Zippies captured her after they failed her Artemis mission test. They will release her only if your crew passes the test in her place.</p>
-                  <p>She is still being held nearby. Leave the lander, make your way through the Artemis I, II, and III rooms, and solve each challenge to unlock the way to her.</p>
-                </div>
-                <div class="briefing-row"><span>OBJECTIVE</span><b>Pass the mission test. Find Paxsi. Bring her home.</b></div>
-                <div class="story-actions">
-                  <button class="text-button" id="back-to-title" type="button">← BACK</button>
-                  <button class="primary-button" id="begin-mission-button" type="button">ENTER THE LANDING ZONE <span>→</span></button>
-                </div>
-              </section>
-            </div>
-            <div class="overlay quiz-overlay hidden" id="quiz-overlay" aria-live="polite">
-              <div class="overlay-card quiz-card">
-                <div class="quiz-topline"><span id="quiz-room-label">ARTEMIS I</span><span id="quiz-number">CHALLENGE 01</span></div>
-                <div class="progress-track"><span id="quiz-progress"></span></div>
-                <section class="lesson-view" id="lesson-view" aria-labelledby="lesson-title">
-                  <div class="lesson-tag"><span class="lesson-mark">✳</span> BEFORE THE QUESTION <span class="lesson-rule"></span></div>
-                  <h2 id="lesson-title">Mission briefing</h2>
-                  <div class="mission-speech speech-bubble">
-                    <span class="speech-speaker">MISSION CONTROL</span>
-                    <p class="lesson-body" id="lesson-body"></p>
                   </div>
                   <div class="paxsi-lesson speech-bubble">
                     <img id="briefing-paxsi" src="paxi/WhatsApp%20Image%202026-11-10%20at%2015.55.55.jpeg" alt="" />
