@@ -22,7 +22,7 @@ window.GAME_DATA = {
             "See whether the Zippy Tribe could survive inside a human spacecraft."
           ],
           answerIndex: 1,
-          source: "https://www.nasa.gov/mission/artemis-i/"
+          source: "https://www.nasa.gov/missions/artemis/artemis-i/"
         },
         {
           type: "question",
@@ -32,7 +32,7 @@ window.GAME_DATA = {
           prompt: "About how fast was Orion traveling when it re-entered Earth's atmosphere and tested its heat shield?",
           options: ["10,000 km/h", "40,000 km/h", "100,000 km/h"],
           answerIndex: 1,
-          source: "https://www.nasa.gov/mission/artemis-i/"
+          source: "https://www.nasa.gov/missions/artemis/artemis-i/"
         },
         {
           type: "code",
@@ -50,11 +50,12 @@ window.GAME_DATA = {
       title: "Artemis II",
       kicker: "MISSION 02 / CREWED LUNAR FLYBY",
       subtitle: "THE FIRST CREWED ORION FLIGHT",
-      note: "Paxsi's voice is breaking up. The next signal is coming from the crew's flight log.",
+      note: "ORION FLIGHT ARCHIVE / Search the room for crew logs, systems modules, and the recovery beacon. Scan each find to unlock its challenge.",
       paxsiLine: "“I can see your signal getting closer!”",
       challenges: [
         {
           type: "question",
+          artifact: { name: "Flight Recorder", icon: "recorder", x: 88, clue: "ARTEMIS II FLIGHT PATH: lunar flyby → free-return trajectory → Earth. No landing." },
           title: "The flight profile",
           lesson: "Artemis II carried astronauts around the Moon and back to Earth, but it did not land. Orion followed a free-return path: after the lunar flyby, the Earth–Moon gravity helped guide it home.",
           paxsiTip: "A flyby means passing by the Moon. Keep an eye out for answers that describe a landing — that was not this mission.",
@@ -66,10 +67,11 @@ window.GAME_DATA = {
             "An immediate docking with the International Space Station."
           ],
           answerIndex: 0,
-          source: "https://www.nasa.gov/mission/artemis-ii/"
+          source: "https://www.nasa.gov/missions/artemis/artemis-2/"
         },
         {
           type: "question",
+          artifact: { name: "Crew Manifest", icon: "manifest", x: 182, clue: "CREW MANIFEST: 3 NASA astronauts + 1 Canadian Space Agency astronaut = 4 crew." },
           title: "Four explorers",
           lesson: "The Artemis II crew had four astronauts: three from NASA and one from the Canadian Space Agency. The mission brought two national space agencies together on one Orion flight.",
           paxsiTip: "Count the crew as a group of three plus one international crewmate.",
@@ -81,10 +83,11 @@ window.GAME_DATA = {
             "NASA, ESA, and the Canadian Space Agency."
           ],
           answerIndex: 0,
-          source: "https://www.nasa.gov/mission/artemis-ii/"
+          source: "https://www.nasa.gov/missions/artemis/artemis-2/"
         },
         {
           type: "question",
+          artifact: { name: "Life-Support Module", icon: "life-support", x: 286, clue: "ORION LIFE SUPPORT: breathable air, water, and cabin temperature control." },
           title: "A life-support checkout",
           lesson: "Artemis II tested Orion with people aboard in deep space. That included life-support systems that help provide breathable air, water, and a safe cabin temperature.",
           paxsiTip: "Think about what a crew needs every minute inside a spacecraft: air, water, and a cabin that stays safe.",
@@ -96,10 +99,11 @@ window.GAME_DATA = {
             "A permanent nuclear power station for the Moon."
           ],
           answerIndex: 1,
-          source: "https://www.nasa.gov/mission/artemis-ii/"
+          source: "https://www.nasa.gov/missions/artemis/artemis-2/"
         },
         {
           type: "question",
+          artifact: { name: "Trajectory Map", icon: "map", x: 392, clue: "FREE-RETURN ROUTE: the Moon flyby and Earth's gravity help guide Orion home." },
           title: "A careful journey home",
           lesson: "On a free-return trajectory, Orion flies past the Moon and uses the combined pull of the Moon and Earth to bend its path back toward Earth. The route is planned to bring the spacecraft home without a lunar landing.",
           paxsiTip: "The Moon is part of the route home, not a place where this crew gets out and lands.",
@@ -111,17 +115,18 @@ window.GAME_DATA = {
             "It sent Orion directly to the International Space Station."
           ],
           answerIndex: 0,
-          source: "https://www.nasa.gov/mission/artemis-ii/"
+          source: "https://www.nasa.gov/missions/artemis/artemis-2/"
         },
         {
           type: "question",
+          artifact: { name: "Recovery Beacon", icon: "beacon", x: 142, clue: "RECOVERY LOG: Orion splashed down in the Pacific Ocean." },
           title: "Splashdown",
           lesson: "After the Artemis II flight around the Moon, Orion returned to Earth and splashed down in the Pacific Ocean. Recovery teams then met the capsule and crew at sea.",
           paxsiTip: "Orion's crew capsule returns by parachute and lands in the ocean — remember which ocean NASA selected for recovery.",
           prompt: "In which ocean did Orion splash down after Artemis II?",
           options: ["The Atlantic Ocean", "The Indian Ocean", "The Pacific Ocean", "The Arctic Ocean"],
           answerIndex: 2,
-          source: "https://www.nasa.gov/mission/artemis-ii/"
+          source: "https://www.nasa.gov/missions/artemis/artemis-2/"
         }
       ]
     },
@@ -130,11 +135,12 @@ window.GAME_DATA = {
       title: "Artemis III",
       kicker: "MISSION 03 / LANDER DEMONSTRATIONS",
       subtitle: "TESTING THE NEXT LUNAR LANDERS",
-      note: "One final room separates your crew from Paxsi. The tribe's newest questions are about the next mission.",
+      note: "LANDER TEST BAY / Search the test rig for mission tags, docking targets, and crew records. Each scan reveals the next challenge.",
       paxsiLine: "“I'm right behind that door. Hurry!”",
       challenges: [
         {
           type: "question",
+          artifact: { name: "Lander Test Tag", icon: "lander", x: 86, clue: "CURRENT ARTEMIS III PLAN: a crewed low Earth orbit test, not a lunar landing." },
           title: "A mission plan that changed",
           lesson: "NASA's current Artemis III plan is a crewed test mission in low Earth orbit. The astronauts will practice working with lunar lander test vehicles; the mission is not currently planned as a Moon landing.",
           paxsiTip: "This mission plan changed. Use the current test-flight goal in the briefing, not the older plan for astronauts to land on the Moon during Artemis III.",
@@ -150,6 +156,7 @@ window.GAME_DATA = {
         },
         {
           type: "question",
+          artifact: { name: "Docking Target", icon: "target", x: 270, clue: "FLIGHT TEST CHECKLIST: rendezvous, docking, habitation, and operating procedures." },
           title: "Practice before landing",
           lesson: "During Artemis III, the crew and flight controllers are expected to practice rendezvous and docking with lander test vehicles, along with habitation and operating procedures needed for later lunar missions.",
           paxsiTip: "Rendezvous means bringing spacecraft together in orbit. Docking is the careful connection they practice next.",
@@ -165,6 +172,7 @@ window.GAME_DATA = {
         },
         {
           type: "question",
+          artifact: { name: "Crew Cabin Panel", icon: "manifest", x: 390, clue: "ORION CREW PLAN: four astronauts are planned for the Artemis III test flight." },
           title: "A team effort",
           lesson: "NASA's current plan calls for four astronauts to launch aboard Orion on Artemis III. They will carry out the in-orbit test mission before later crews attempt lunar landings.",
           paxsiTip: "Picture four seats in Orion for this planned flight.",
