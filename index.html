@@ -7,9 +7,9 @@
     <meta name="description" content="A pixel-art Artemis space escape room. Help the astronauts rescue Paxi!" />
     <title>Rescue Paxi! — Artemis Escape Room</title>
     <link rel="icon" type="image/png" href="logo-pixelart-512-preview.png" />
-    <link rel="stylesheet" href="styles.css?v=2026-11-11-4" />
-    <script src="questions.js?v=2026-11-11-4" defer></script>
-    <script src="game.js?v=2026-11-11-4" defer></script>
+    <link rel="stylesheet" href="styles.css?v=2026-11-11-6" />
+    <script src="questions.js?v=2026-11-11-6" defer></script>
+    <script src="game.js?v=2026-11-11-6" defer></script>
   </head>
   <body>
     <main class="shell">
@@ -40,15 +40,32 @@
             </div>
             <div class="world-interact hidden" id="world-interact"><kbd>E</kbd><span id="world-interact-text">READ MISSION BRIEF</span></div>
             <div class="overlay start-overlay" id="start-overlay">
+              <div id="intro-step">
               <div class="overlay-card intro-card">
                 <div class="card-kicker"><span class="alert-pip"></span> INCOMING TRANSMISSION · 02:14 UTC</div>
                 <div class="intro-icon" aria-hidden="true"><img id="intro-paxi" src="paxi/WhatsApp%20Image%202026-11-10%20at%2015.55.55.jpeg" alt="" /></div>
                 <h2>Rescue <em>Paxi.</em></h2>
-                <p>Your crew crash-landed near the Moon. The Zippy Tribe has captured your friend Paxi, their teacher. They will only release her if you pass their Artemis mission test.</p>
+                <p>A distress call has reached your crew near the Moon. Open the field report to learn what happened to Paxsi and how to bring her home.</p>
                 <div class="briefing-row"><span>YOUR MISSION</span><b>Clear 3 rooms. Crack the code. Bring Paxi home.</b></div>
                 <button class="primary-button" id="start-button" type="button"><span id="start-label">START MISSION</span><span>→</span></button>
                 <div class="control-note">MOVE <kbd>A</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>→</kbd> &nbsp; JUMP <kbd>SPACE</kbd> &nbsp; INTERACT <kbd>E</kbd></div>
               </div>
+              </div>
+              <section class="overlay-card story-card hidden" id="story-step" aria-labelledby="story-title">
+                <div class="card-kicker"><span class="alert-pip"></span> MISSION CONTROL · INCIDENT REPORT</div>
+                <div class="story-portrait"><img src="paxi/WhatsApp%20Image%202026-11-10%20at%2015.55.55.jpeg" alt="Paxsi" /></div>
+                <h2 id="story-title">Who is <em>Paxsi?</em></h2>
+                <div class="story-message">
+                  <span class="speech-speaker">MISSION CONTROL</span>
+                  <p>Paxsi is your crew’s close friend—and the Zippy Tribe’s teacher. Your team crash-landed near the Moon, and the Zippies captured her after they failed her Artemis mission test. They will release her only if your crew passes the test in her place.</p>
+                  <p>She is still being held nearby. Leave the lander, make your way through the Artemis I, II, and III rooms, and solve each challenge to unlock the way to her.</p>
+                </div>
+                <div class="briefing-row"><span>OBJECTIVE</span><b>Pass the mission test. Find Paxsi. Bring her home.</b></div>
+                <div class="story-actions">
+                  <button class="text-button" id="back-to-title" type="button">← BACK</button>
+                  <button class="primary-button" id="begin-mission-button" type="button">ENTER THE LANDING ZONE <span>→</span></button>
+                </div>
+              </section>
             </div>
             <div class="overlay quiz-overlay hidden" id="quiz-overlay" aria-live="polite">
               <div class="overlay-card quiz-card">
