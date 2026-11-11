@@ -17,6 +17,8 @@ Open `index.html` in a modern browser. No build step or package installation is 
 
 All rooms, prompts, options, correct answers, and NASA source links live in `questions.js`. `answerIndex` is zero-based. Use a `type: "question"` challenge for multiple choice, or `type: "code"` with an `answer` string for a numeric lock. The first room's lock expects `14` (question 1 joined to the first digit of 40,000 km/h).
 
+Each challenge also has a `lesson` briefing and a separate `paxsiTip`. The player reads both before the question appears.
+
 The game keeps completed challenges and the current room in browser local storage. The **Reset Run** button clears that local progress.
 
 ## Art assets
