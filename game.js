@@ -461,13 +461,16 @@
     if (endingImageElement) endingImageElement.src = paxsiDataUrl(endingImage % assets.paxsi.length);
   }
   function startGame() {
+    $("intro-step").classList.add("hidden"); $("story-step").classList.remove("hidden");
+  }
+  function beginMission() {
     state.started = true; gameActive = true; $("start-overlay").classList.add("hidden"); save();
     canvas.focus({ preventScroll: true });
   }
   function resetGame() {
     state = freshState(); gameActive = false; player.x = 82; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true;
     localStorage.removeItem(storageKey); $("ending-overlay").classList.add("hidden"); $("quiz-overlay").classList.add("hidden");
-    quizOpen = false; $("start-label").textContent = "START MISSION"; updateHud(); $("start-overlay").classList.remove("hidden");
+    quizOpen = false; $("intro-step").classList.remove("hidden"); $("story-step").classList.add("hidden"); $("start-label").textContent = "START MISSION"; updateHud(); $("start-overlay").classList.remove("hidden");
   }
 
   function controlKey(event) {
@@ -486,6 +489,8 @@
   window.addEventListener("keyup", (event) => { const key = controlKey(event); activeKeys.delete(key); activeKeys.delete(key.toLowerCase()); });
   window.addEventListener("blur", () => activeKeys.clear());
   $("start-button").addEventListener("click", startGame);
+  $("begin-mission-button").addEventListener("click", beginMission);
+  $("back-to-title").addEventListener("click", () => { $("story-step").classList.add("hidden"); $("intro-step").classList.remove("hidden"); });
   $("reset-button").addEventListener("click", () => { if (window.confirm("Reset all saved mission progress and start over?")) resetGame(); });
   $("play-again").addEventListener("click", resetGame);
   if (state.done) {
