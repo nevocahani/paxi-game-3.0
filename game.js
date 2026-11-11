@@ -75,8 +75,10 @@
       if (assets.paxsiPixels[index]) {
         const spriteUrl = assets.paxsiPixels[index].toDataURL();
         const introImage = $("intro-paxsi") || document.querySelector(".intro-icon img");
+        const briefingImage = $("briefing-paxsi");
         const endingImageElement = $("paxsi-image");
         if (index === 0 && introImage) introImage.src = spriteUrl;
+        if (index === 0 && briefingImage) briefingImage.src = spriteUrl;
         if (state?.done && index === 0 && endingImageElement) endingImageElement.src = spriteUrl;
       }
     };
@@ -125,6 +127,7 @@
       else { ctx.fillStyle = "#34404a"; ctx.fillRect(x, 225, 32, 32); }
       if (assets.groundFill.complete && assets.groundFill.naturalWidth) ctx.drawImage(assets.groundFill, x, 257, 32, 32);
     }
+    drawFieldProps(time, p.accent);
     // Mission console
     const consoleX = 226;
     ctx.fillStyle = "#111a25"; ctx.fillRect(consoleX - 18, 189, 36, 36);
@@ -179,6 +182,38 @@
     if (!roomComplete() && !canInteract) { ctx.globalAlpha = .55 + Math.sin(time / 220) * .2; ctx.fillStyle = p.accent; ctx.fillRect(consoleX - 1, 182, 2, 2); ctx.globalAlpha = 1; }
   }
 
+  function drawFieldProps(time, accent) {
+    // A parked survey rover anchors the left side of the landing zone.
+    ctx.fillStyle = "#202a30"; ctx.fillRect(67, 207, 41, 12);
+    ctx.fillStyle = "#69716b"; ctx.fillRect(72, 201, 25, 9);
+    ctx.fillStyle = "#bcc49a"; ctx.fillRect(76, 203, 14, 5);
+    ctx.fillStyle = "#28343a"; ctx.fillRect(70, 216, 9, 8); ctx.fillRect(96, 216, 9, 8);
+    ctx.fillStyle = "#d5a66f"; ctx.fillRect(73, 218, 3, 4); ctx.fillRect(99, 218, 3, 4);
+    ctx.fillStyle = "#506574"; ctx.fillRect(99, 202, 2, 7); ctx.fillRect(98, 201, 4, 2);
+    ctx.fillStyle = "#b8d9d7"; ctx.fillRect(102, 204, 2, 2);
+    // Stacked sample boxes, with a small label stripe.
+    ctx.fillStyle = "#202a2e"; ctx.fillRect(141, 210, 17, 15); ctx.fillRect(159, 215, 13, 10);
+    ctx.fillStyle = "#9a7659"; ctx.fillRect(143, 207, 13, 15); ctx.fillRect(161, 212, 9, 10);
+    ctx.fillStyle = "#d2b587"; ctx.fillRect(146, 211, 7, 2); ctx.fillRect(163, 216, 5, 2);
+    ctx.fillStyle = "#675445"; ctx.fillRect(148, 207, 2, 15); ctx.fillRect(164, 212, 2, 10);
+    // A compact radio mast blinks in time with the incoming signal.
+    ctx.fillStyle = "#28333a"; ctx.fillRect(369, 204, 7, 21);
+    ctx.fillStyle = "#a9b8a8"; ctx.fillRect(371, 188, 3, 17); ctx.fillRect(366, 191, 13, 2);
+    ctx.fillStyle = "#3b5555"; ctx.fillRect(365, 187, 15, 2); ctx.fillRect(367, 184, 11, 2);
+    ctx.fillStyle = "#c7d77b"; ctx.fillRect(371, 180, 3, 3);
+    ctx.globalAlpha = .3 + .25 * (1 + Math.sin(time / 170));
+    ctx.fillStyle = accent; ctx.fillRect(368, 177, 9, 2); ctx.fillRect(370, 174, 5, 2);
+    ctx.globalAlpha = 1;
+    // A few ground-level signal pixels give the landing zone a little life.
+    for (let i = 0; i < 5; i++) {
+      const drift = (time / 65 + i * 59) % 480;
+      ctx.globalAlpha = .25 + (i % 3) * .12;
+      ctx.fillStyle = i % 2 ? "#e7d6aa" : accent;
+      ctx.fillRect(drift, 217 + (i % 2) * 5, 2, 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function draw(time = 0) {
     const dt = Math.min((time - lastFrame) / 16.67 || 1, 2); lastFrame = time;
     const left = activeKeys.has("ArrowLeft") || activeKeys.has("a");
@@ -231,18 +266,35 @@
     $("quiz-room-label").textContent = room().title.toUpperCase();
     $("quiz-number").textContent = `CHALLENGE ${String(state.stages[state.room] + 1).padStart(2, "0")} / ${String(room().challenges.length).padStart(2, "0")}`;
     $("quiz-progress").style.width = `${(state.stages[state.room] / room().challenges.length) * 100}%`;
+    $("lesson-view").classList.remove("hidden");
+    $("question-view").classList.add("hidden");
+    $("lesson-title").textContent = challenge.title;
+    $("lesson-body").textContent = challenge.lesson || "Review the mission notes, then use what you learned to answer.";
+    $("paxsi-lesson").textContent = challenge.paxsiTip || "Take a breath, read the briefing, and look for the clue that matches the mission.";
+    const briefingPaxsi = $("briefing-paxsi");
+    const paxsiSprite = assets.paxsiPixels[0];
+    if (briefingPaxsi && paxsiSprite) briefingPaxsi.src = paxsiSprite.toDataURL();
+    $("attempts-label").textContent = "READ THE BRIEFING";
+    const source = $("source-link");
+    if (challenge.source) { source.href = challenge.source; source.classList.remove("hidden"); } else source.classList.add("hidden");
+    $("answer-list").replaceChildren();
+    $("continue-question").onclick = () => showQuestion(challenge);
+    $("close-quiz").onclick = closeQuiz;
+  }
+  function showQuestion(challenge) {
+    $("lesson-view").classList.add("hidden");
+    $("question-view").classList.remove("hidden");
     $("quiz-title").textContent = challenge.title;
     $("quiz-prompt").textContent = challenge.prompt;
     $("quiz-feedback").textContent = ""; $("quiz-feedback").className = "quiz-feedback";
+    attempts = 3;
     $("attempts-label").textContent = "ATTEMPTS LEFT: 3";
-    const source = $("source-link");
-    if (challenge.source) { source.href = challenge.source; source.classList.remove("hidden"); } else source.classList.add("hidden");
     const answers = $("answer-list"); answers.replaceChildren();
     if (challenge.type === "code") {
       const form = document.createElement("form"); form.className = "code-form";
       const input = document.createElement("input"); input.className = "code-input"; input.id = "code-input"; input.inputMode = "numeric"; input.autocomplete = "off"; input.maxLength = 4; input.setAttribute("aria-label", "Enter the escape code"); input.placeholder = "••";
       const button = document.createElement("button"); button.className = "primary-button"; button.type = "submit"; button.textContent = "UNLOCK →";
-      form.append(input, button); form.addEventListener("submit", (event) => { event.preventDefault(); checkAnswer(input.value.trim() === challenge.answer, null, challenge); }); answers.append(form); input.focus();
+      form.append(input, button); form.addEventListener("submit", (event) => { event.preventDefault(); checkAnswer(input.value.trim() === challenge.answer, null, challenge); }); answers.append(form);
     } else {
       challenge.options.forEach((option, index) => {
         const button = document.createElement("button"); button.type = "button"; button.className = "answer-option";
@@ -251,7 +303,7 @@
         button.addEventListener("click", () => checkAnswer(index === challenge.answerIndex, button, challenge)); answers.append(button);
       });
     }
-    $("close-quiz").onclick = closeQuiz;
+    if (challenge.type === "code") $("answer-list").querySelector("input")?.focus();
   }
   function checkAnswer(correct, button, challenge) {
     if (correct) {
