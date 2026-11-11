@@ -8,6 +8,7 @@
   const image = (src) => { const img = new Image(); img.src = src; return img; };
   const assets = {
     scene: image(data.assets.scene),
+    lander: image(data.assets.lander),
     groundTop: image(data.assets.groundTop),
     groundFill: image(data.assets.groundFill),
     logo: image(data.assets.logo),
@@ -19,6 +20,26 @@
     doorOpen: Array.from({ length: 8 }, (_, i) => image(`${data.assets.doorOpen}/frame-${i + 1}.png`)),
     paxsi: data.assets.paxsi.map(image)
   };
+  assets.landerPixels = null;
+  function prepareLander() {
+    if (!assets.lander.complete || !assets.lander.naturalWidth) return;
+    const keyed = document.createElement("canvas");
+    keyed.width = assets.lander.naturalWidth; keyed.height = assets.lander.naturalHeight;
+    const keyedCtx = keyed.getContext("2d", { willReadFrequently: true });
+    keyedCtx.drawImage(assets.lander, 0, 0);
+    const frame = keyedCtx.getImageData(0, 0, keyed.width, keyed.height);
+    const pixels = frame.data;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const high = Math.max(pixels[i], pixels[i + 1], pixels[i + 2]);
+      const low = Math.min(pixels[i], pixels[i + 1], pixels[i + 2]);
+      // The supplied sprite has a flat charcoal backdrop; preserve its navy outlines.
+      if (high < 42 && high - low < 8) pixels[i + 3] = 0;
+    }
+    keyedCtx.putImageData(frame, 0, 0);
+    assets.landerPixels = keyed;
+  }
+  if (assets.lander.complete) prepareLander();
+  else assets.lander.addEventListener("load", prepareLander, { once: true });
   assets.paxsiPixels = [];
   let state = null;
   const doorOpenAt = data.rooms.map(() => null);
@@ -27,7 +48,6 @@
     "Paxsi's voice is breaking up. The next signal is coming from the crew's flight log.",
     "One final room separates your crew from Paxsi. The tribe's newest questions are about the next mission."
   ];
-  const roomRadios = ["“Can you hear me out there?”", "“I can see your signal getting closer!”", "“I'm right behind that door. Hurry!”"];
   function makePixelSprite(source) {
     if (!source.complete || !source.naturalWidth) return null;
     const width = source.naturalWidth, height = source.naturalHeight;
@@ -76,15 +96,17 @@
         const spriteUrl = assets.paxsiPixels[index].toDataURL();
         const introImage = $("intro-paxsi") || document.querySelector(".intro-icon img");
         const briefingImage = $("briefing-paxsi");
+        const worldPaxsiImage = $("world-paxsi");
         const endingImageElement = $("paxsi-image");
         if (index === 0 && introImage) introImage.src = spriteUrl;
         if (index === 0 && briefingImage) briefingImage.src = spriteUrl;
+        if (index === 0 && worldPaxsiImage) worldPaxsiImage.src = spriteUrl;
         if (state?.done && index === 0 && endingImageElement) endingImageElement.src = spriteUrl;
       }
     };
     if (source.complete) prepare(); else source.addEventListener("load", prepare, { once: true });
   });
-  function freshState() { return { started: false, room: 0, stages: data.rooms.map(() => 0), x: 46, done: false }; }
+  function freshState() { return { started: false, room: 0, stages: data.rooms.map(() => 0), x: 118, done: false }; }
   function loadState() {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey));
@@ -93,12 +115,13 @@
     } catch { return freshState(); }
   }
   state = loadState();
-  const player = { x: state.x || 46, y: 225, vy: 0, direction: 1, grounded: true, frame: 0, anim: 0 };
+  if (state.room === 0 && state.stages[0] === 0 && state.x < 90) state.x = 118;
+  const player = { x: state.x || 118, y: 225, vy: 0, direction: 1, grounded: true, frame: 0, anim: 0 };
   let quizOpen = false;
+  let gameActive = false;
   let attempts = 3;
   let activeKeys = new Set();
   let lastFrame = 0;
-  let nearby = false;
   let endingImage = 0;
   const room = () => data.rooms[state.room];
   const stage = () => room().challenges[state.stages[state.room]];
@@ -128,8 +151,13 @@
       if (assets.groundFill.complete && assets.groundFill.naturalWidth) ctx.drawImage(assets.groundFill, x, 257, 32, 32);
     }
     drawFieldProps(time, p.accent);
+    // Artemis I opens at the crew's lander. The source art's dark backdrop is keyed out above.
+    if (roomIndex === 0 && assets.landerPixels) {
+      const ship = assets.landerPixels;
+      ctx.drawImage(ship, 0, 225 - ship.height * (250 / ship.width), 250, ship.height * (250 / ship.width));
+    }
     // Mission console
-    const consoleX = 226;
+    const consoleX = roomIndex === 0 ? 280 : 226;
     ctx.fillStyle = "#111a25"; ctx.fillRect(consoleX - 18, 189, 36, 36);
     ctx.fillStyle = "#455563"; ctx.fillRect(consoleX - 14, 192, 28, 25);
     ctx.fillStyle = roomComplete() ? "#b8ed76" : p.accent; ctx.fillRect(consoleX - 10, 196, 20, 9);
@@ -155,7 +183,7 @@
     const paxsiSprite = assets.paxsiPixels[Math.floor(time / 560) % Math.max(1, assets.paxsiPixels.length)];
     if (paxsiSprite) {
       const bob = isDoorOpen ? 0 : Math.round(Math.sin(time / 360) * 1);
-      ctx.drawImage(paxsiSprite, 302, 193 + bob, 32, 32);
+      ctx.drawImage(paxsiSprite, (roomIndex === 0 ? 350 : 318) - 16, 193 + bob, 32, 32);
     }
     // Character sprite; provided frames are 32x32 and kept crisp on the canvas.
     const moving = activeKeys.has("ArrowRight") || activeKeys.has("d") || activeKeys.has("ArrowLeft") || activeKeys.has("a");
@@ -167,17 +195,10 @@
     const sprite = set[player.frame];
     if (sprite?.complete && sprite.naturalWidth) ctx.drawImage(sprite, Math.round(player.x - 16), Math.round(player.y - 28), 32, 32);
     else { ctx.fillStyle = "#d4e5ed"; ctx.fillRect(player.x - 6, player.y - 25, 12, 25); ctx.fillStyle = "#cf554c"; ctx.fillRect(player.x - 6, player.y - 22, 12, 5); }
-    // Interaction hint inside the world
+    // Clear, readable HTML speech and interaction bubbles sit above the pixel scene.
     const targetX = roomComplete() ? doorX : consoleX;
     const canInteract = Math.abs(player.x - targetX) < 37 && player.grounded;
-    nearby = canInteract;
-    if (canInteract && !quizOpen && state.started && !state.done) {
-      const label = roomComplete() ? "E  ENTER" : "E  INTERACT";
-      ctx.font = "7px 'DM Mono', monospace"; const width = ctx.measureText(label).width + 12;
-      ctx.fillStyle = "#101923e8"; ctx.fillRect(targetX - width / 2, 139, width, 15);
-      ctx.strokeStyle = "#c7f36b99"; ctx.strokeRect(targetX - width / 2 + .5, 139.5, width - 1, 14);
-      ctx.fillStyle = "#e8f2db"; ctx.textAlign = "center"; ctx.fillText(label, targetX, 149); ctx.textAlign = "left";
-    }
+    updateWorldDialogue(canInteract, targetX);
     // A faint beacon marks the console if the player is far away.
     if (!roomComplete() && !canInteract) { ctx.globalAlpha = .55 + Math.sin(time / 220) * .2; ctx.fillStyle = p.accent; ctx.fillRect(consoleX - 1, 182, 2, 2); ctx.globalAlpha = 1; }
   }
@@ -214,11 +235,40 @@
     ctx.globalAlpha = 1;
   }
 
+  function updateWorldDialogue(canInteract, targetX) {
+    const bubble = $("world-dialogue"), prompt = $("world-interact");
+    if (!gameActive || quizOpen || state.done) {
+      bubble.classList.add("hidden"); prompt.classList.add("hidden"); return;
+    }
+    const paxsiX = state.room === 0 ? 350 : 318;
+    const nearPaxsi = Math.abs(player.x - paxsiX) < 61;
+    const nearLander = state.room === 0 && Math.abs(player.x - 118) < 48;
+    const speaker = nearPaxsi ? "PAXSI" : "MISSION CONTROL";
+    const line = nearPaxsi ? room().paxsiLine : nearLander
+      ? "The lander hatch is open. Follow the ramp to the mission console."
+      : roomComplete()
+      ? "The next airlock is open. Come on!"
+      : `The ${room().title} mission file is ready. Read the briefing before you answer.`;
+    if ($("world-speaker").textContent !== speaker) $("world-speaker").textContent = speaker;
+    if ($("world-dialogue-text").textContent !== line) $("world-dialogue-text").textContent = line;
+    $("world-paxsi").classList.toggle("hidden", !nearPaxsi);
+    bubble.dataset.speaker = nearPaxsi ? "paxsi" : "control";
+    bubble.style.left = `${(nearPaxsi ? paxsiX : nearLander ? 118 : targetX) / canvas.width * 100}%`;
+    bubble.classList.toggle("hidden", !nearPaxsi && !nearLander && !canInteract);
+    prompt.classList.toggle("hidden", !canInteract);
+    if (canInteract) {
+    prompt.style.left = `${Math.min(82, targetX / canvas.width * 100)}%`;
+      $("world-interact-text").textContent = roomComplete()
+        ? (state.room === data.rooms.length - 1 ? "RESCUE PAXSI" : "ENTER NEXT ROOM")
+        : "OPEN MISSION BRIEFING";
+    }
+  }
+
   function draw(time = 0) {
     const dt = Math.min((time - lastFrame) / 16.67 || 1, 2); lastFrame = time;
     const left = activeKeys.has("ArrowLeft") || activeKeys.has("a");
     const right = activeKeys.has("ArrowRight") || activeKeys.has("d");
-    if (state.started && !quizOpen && !state.done) {
+    if (gameActive && !quizOpen && !state.done) {
       if (left) { player.x -= 2.3 * dt; player.direction = -1; }
       if (right) { player.x += 2.3 * dt; player.direction = 1; }
       player.x = Math.max(18, Math.min(465, player.x));
@@ -237,7 +287,6 @@
     $("room-title").textContent = r.title;
     $("room-count").innerHTML = `ROOM 0${state.room + 1} <span>/ 0${data.rooms.length}</span>`;
     $("field-note").textContent = roomNotes[state.room];
-    $("radio-line").textContent = roomRadios[state.room];
     const total = data.rooms.reduce((n, entry) => n + entry.challenges.length, 0);
     const complete = data.rooms.reduce((n, entry, i) => n + state.stages[i], 0);
     $("hud-progress").textContent = `DATA ${String(Math.round(complete / total * 100)).padStart(2, "0")}%`;
@@ -340,39 +389,53 @@
     if (state.room < data.rooms.length - 1) { state.room += 1; player.x = 40; player.y = 225; player.vy = 0; player.grounded = true; save(); updateHud(); }
   }
   function interact() {
-    if (!state.started || state.done || quizOpen) return;
+    if (!gameActive || state.done || quizOpen) return;
     const targetX = roomComplete() ? 435 : 226;
     if (Math.abs(player.x - targetX) >= 37) return;
     if (roomComplete()) advanceRoom(); else showQuiz();
   }
   function finishGame() {
     if (state.done) return;
-    state.done = true; state.started = true; save();
+    state.done = true; state.started = true; gameActive = false; save();
     $("ending-overlay").classList.remove("hidden");
     const endingImageElement = $("paxsi-image");
     if (endingImageElement) endingImageElement.src = paxsiDataUrl(endingImage % assets.paxsi.length);
   }
-  function startGame() { state.started = true; $("start-overlay").classList.add("hidden"); save(); }
-  function resetGame() { state = freshState(); player.x = 46; player.y = 225; player.vy = 0; player.grounded = true; localStorage.removeItem(storageKey); $("ending-overlay").classList.add("hidden"); $("quiz-overlay").classList.add("hidden"); quizOpen = false; updateHud(); $("start-overlay").classList.remove("hidden"); }
+  function startGame() {
+    state.started = true; gameActive = true; $("start-overlay").classList.add("hidden"); save();
+    canvas.focus({ preventScroll: true });
+  }
+  function resetGame() {
+    state = freshState(); gameActive = false; player.x = 118; player.y = 225; player.vy = 0; player.grounded = true;
+    localStorage.removeItem(storageKey); $("ending-overlay").classList.add("hidden"); $("quiz-overlay").classList.add("hidden");
+    quizOpen = false; $("start-label").textContent = "START MISSION"; updateHud(); $("start-overlay").classList.remove("hidden");
+  }
+
+  function controlKey(event) {
+    const physical = { KeyA: "a", KeyD: "d", KeyE: "e", KeyW: "w", Space: " " };
+    return physical[event.code] || event.key;
+  }
 
   window.addEventListener("keydown", (event) => {
-    if (["ArrowLeft", "ArrowRight", "ArrowUp", " "].includes(event.key)) event.preventDefault();
-    if (["ArrowLeft", "ArrowRight", " ", "ArrowUp"].includes(event.key)) activeKeys.add(event.key);
-    if (["a", "d", "A", "D"].includes(event.key)) activeKeys.add(event.key.toLowerCase());
-    if ((event.key === " " || event.key === "ArrowUp" || event.key.toLowerCase() === "w") && state.started && !quizOpen && player.grounded) { player.vy = -6.8; player.grounded = false; player.frame = 0; }
-    if (event.key.toLowerCase() === "e" && !event.repeat) interact();
+    const key = controlKey(event);
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", " "].includes(key)) event.preventDefault();
+    if (["ArrowLeft", "ArrowRight", "a", "d"].includes(key)) activeKeys.add(key);
+    if ((key === " " || key === "ArrowUp" || key === "w") && gameActive && !quizOpen && player.grounded) { event.preventDefault(); player.vy = -6.8; player.grounded = false; player.frame = 0; }
+    if (key === "e" && !event.repeat) interact();
     if (event.key === "Escape" && quizOpen) closeQuiz();
   });
-  window.addEventListener("keyup", (event) => { activeKeys.delete(event.key); activeKeys.delete(event.key.toLowerCase()); });
+  window.addEventListener("keyup", (event) => { const key = controlKey(event); activeKeys.delete(key); activeKeys.delete(key.toLowerCase()); });
   window.addEventListener("blur", () => activeKeys.clear());
   $("start-button").addEventListener("click", startGame);
   $("reset-button").addEventListener("click", () => { if (window.confirm("Reset all saved mission progress and start over?")) resetGame(); });
   $("play-again").addEventListener("click", resetGame);
-  if (state.started) $("start-overlay").classList.add("hidden");
   if (state.done) {
     $("ending-overlay").classList.remove("hidden");
     const endingImageElement = $("paxsi-image");
     if (endingImageElement) endingImageElement.src = paxsiDataUrl(0);
+  } else {
+    $("start-label").textContent = state.started ? "RESUME MISSION" : "START MISSION";
+    $("start-overlay").classList.remove("hidden");
   }
   updateHud(); requestAnimationFrame(draw);
 })();
