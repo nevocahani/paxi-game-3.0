@@ -109,7 +109,7 @@
     };
     if (source.complete) prepare(); else source.addEventListener("load", prepare, { once: true });
   });
-  function freshState() { return { started: false, room: 0, stages: data.rooms.map(() => 0), x: 118, done: false }; }
+  function freshState() { return { started: false, room: 0, stages: data.rooms.map(() => 0), x: 82, done: false }; }
   function loadState() {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey));
@@ -118,8 +118,20 @@
     } catch { return freshState(); }
   }
   state = loadState();
-  if (state.room === 0 && state.stages[0] === 0 && state.x < 90) state.x = 118;
-  const player = { x: state.x || 118, y: 225, vy: 0, direction: 1, grounded: true, frame: 0, anim: 0 };
+  if (state.room === 0 && state.stages[0] === 0 && state.x === 118) state.x = 82;
+  function groundYAt(x, roomIndex = state.room) {
+    if (roomIndex !== 0) return 225;
+    if (x < 110) return 174;
+    if (x < 128) return 182;
+    if (x < 146) return 190;
+    if (x < 164) return 198;
+    if (x < 182) return 206;
+    if (x < 200) return 214;
+    if (x < 218) return 222;
+    return 225;
+  }
+  function missionConsoleX(roomIndex = state.room) { return roomIndex === 0 ? 280 : 226; }
+  const player = { x: state.x || 82, y: groundYAt(state.x || 82), vy: 0, direction: 1, grounded: true, frame: 0, anim: 0 };
   let quizOpen = false;
   let gameActive = false;
   let attempts = 3;
@@ -138,7 +150,8 @@
   function drawLanderFallback() {
     // A built-in pixel-art lander keeps the first room readable even if the PNG is missing online.
     ctx.save();
-    ctx.translate(0, 121);
+    const scale = .84;
+    ctx.translate(0, 225 - 110 * scale); ctx.scale(scale, scale);
     ctx.fillStyle = "#161c31";
     ctx.fillRect(28, 17, 124, 54); ctx.fillRect(45, 7, 86, 10); ctx.fillRect(16, 27, 12, 34);
     ctx.fillRect(140, 34, 26, 37); ctx.fillRect(34, 71, 91, 9);
@@ -155,6 +168,20 @@
     ctx.fillStyle = "#ffd76e"; ctx.fillRect(0, 38, 12, 10); ctx.fillRect(12, 28, 8, 31);
     ctx.fillStyle = "#f49a26"; ctx.fillRect(0, 48, 13, 10); ctx.fillRect(13, 59, 7, 6);
     ctx.restore();
+  }
+
+  function drawLanderSteps() {
+    // Raised landing deck and short, walkable steps down to the lunar surface.
+    ctx.fillStyle = "#273245"; ctx.fillRect(62, 174, 50, 51);
+    ctx.fillStyle = "#f2c75d"; ctx.fillRect(62, 171, 50, 5);
+    ctx.fillStyle = "#96671f"; ctx.fillRect(62, 176, 50, 3);
+    const steps = [[110, 182], [128, 190], [146, 198], [164, 206], [182, 214], [200, 222]];
+    steps.forEach(([x, y]) => {
+      ctx.fillStyle = "#273245"; ctx.fillRect(x, y, 18, 225 - y);
+      ctx.fillStyle = "#96671f"; ctx.fillRect(x, y + 4, 18, Math.max(0, 225 - y - 4));
+      ctx.fillStyle = "#f2c75d"; ctx.fillRect(x, y, 18, 4);
+      ctx.fillStyle = "#ffe08a"; ctx.fillRect(x, y, 18, 1);
+    });
   }
 
   function drawRoom(time = 0) {
@@ -180,11 +207,12 @@
     if (roomIndex === 0) {
       if (assets.landerPixels) {
         const ship = assets.landerPixels;
-        ctx.drawImage(ship, 0, 225 - ship.height * (250 / ship.width), 250, ship.height * (250 / ship.width));
+        ctx.drawImage(ship, 0, 225 - ship.height * (210 / ship.width), 210, ship.height * (210 / ship.width));
       } else drawLanderFallback();
+      drawLanderSteps();
     }
     // Mission console
-    const consoleX = roomIndex === 0 ? 280 : 226;
+    const consoleX = missionConsoleX(roomIndex);
     ctx.fillStyle = "#111a25"; ctx.fillRect(consoleX - 18, 189, 36, 36);
     ctx.fillStyle = "#455563"; ctx.fillRect(consoleX - 14, 192, 28, 25);
     ctx.fillStyle = roomComplete() ? "#b8ed76" : p.accent; ctx.fillRect(consoleX - 10, 196, 20, 9);
@@ -269,10 +297,10 @@
     }
     const paxsiX = state.room === 0 ? 350 : 318;
     const nearPaxsi = Math.abs(player.x - paxsiX) < 61;
-    const nearLander = state.room === 0 && Math.abs(player.x - 118) < 48;
+    const nearLander = state.room === 0 && Math.abs(player.x - 82) < 48;
     const speaker = nearPaxsi ? "PAXSI" : "MISSION CONTROL";
     const line = nearPaxsi ? room().paxsiLine : nearLander
-      ? "The lander hatch is open. Follow the ramp to the mission console."
+      ? "Exit the lander and take the stairs down to the mission console."
       : roomComplete()
       ? "The next airlock is open. Come on!"
       : `The ${room().title} mission file is ready. Read the briefing before you answer.`;
@@ -280,7 +308,7 @@
     if ($("world-dialogue-text").textContent !== line) $("world-dialogue-text").textContent = line;
     $("world-paxsi").classList.toggle("hidden", !nearPaxsi);
     bubble.dataset.speaker = nearPaxsi ? "paxsi" : "control";
-    bubble.style.left = `${(nearPaxsi ? paxsiX : nearLander ? 118 : targetX) / canvas.width * 100}%`;
+    bubble.style.left = `${(nearPaxsi ? paxsiX : nearLander ? 82 : targetX) / canvas.width * 100}%`;
     bubble.classList.toggle("hidden", !nearPaxsi && !nearLander && !canInteract);
     prompt.classList.toggle("hidden", !canInteract);
     if (canInteract) {
@@ -299,9 +327,13 @@
       if (left) { player.x -= 2.3 * dt; player.direction = -1; }
       if (right) { player.x += 2.3 * dt; player.direction = 1; }
       player.x = Math.max(18, Math.min(465, player.x));
+      const floorY = groundYAt(player.x);
+      if (floorY < player.y && player.y - floorY <= 12 && player.vy === 0) {
+        player.y = floorY; player.grounded = true;
+      } else if (floorY > player.y && player.grounded) player.grounded = false;
       player.y += player.vy * dt;
       if (!player.grounded) player.vy += .42 * dt;
-      if (player.y >= 225) { player.y = 225; player.vy = 0; player.grounded = true; }
+      if (player.y >= floorY) { player.y = floorY; player.vy = 0; player.grounded = true; }
     }
     drawRoom(time);
     updateHud();
@@ -409,15 +441,15 @@
   }
   function closeQuiz() { quizOpen = false; $("quiz-overlay").classList.add("hidden"); activeKeys.clear(); }
   function retreat() {
-    closeQuiz(); state.room = Math.max(0, state.room - 1); player.x = state.room === 0 ? 46 : 420; player.y = 225; player.vy = 0; player.grounded = true; save(); updateHud();
+    closeQuiz(); state.room = Math.max(0, state.room - 1); player.x = state.room === 0 ? 82 : 420; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true; save(); updateHud();
   }
   function advanceRoom() {
     if (!roomComplete()) { showQuiz(); return; }
-    if (state.room < data.rooms.length - 1) { state.room += 1; player.x = 40; player.y = 225; player.vy = 0; player.grounded = true; save(); updateHud(); }
+    if (state.room < data.rooms.length - 1) { state.room += 1; player.x = 40; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true; save(); updateHud(); }
   }
   function interact() {
     if (!gameActive || state.done || quizOpen) return;
-    const targetX = roomComplete() ? 435 : 226;
+    const targetX = roomComplete() ? 435 : missionConsoleX();
     if (Math.abs(player.x - targetX) >= 37) return;
     if (roomComplete()) advanceRoom(); else showQuiz();
   }
@@ -433,7 +465,7 @@
     canvas.focus({ preventScroll: true });
   }
   function resetGame() {
-    state = freshState(); gameActive = false; player.x = 118; player.y = 225; player.vy = 0; player.grounded = true;
+    state = freshState(); gameActive = false; player.x = 82; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true;
     localStorage.removeItem(storageKey); $("ending-overlay").classList.add("hidden"); $("quiz-overlay").classList.add("hidden");
     quizOpen = false; $("start-label").textContent = "START MISSION"; updateHud(); $("start-overlay").classList.remove("hidden");
   }
