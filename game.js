@@ -29,12 +29,15 @@
     keyedCtx.drawImage(assets.lander, 0, 0);
     const frame = keyedCtx.getImageData(0, 0, keyed.width, keyed.height);
     const pixels = frame.data;
+    let visiblePixels = 0;
     for (let i = 0; i < pixels.length; i += 4) {
       const high = Math.max(pixels[i], pixels[i + 1], pixels[i + 2]);
       const low = Math.min(pixels[i], pixels[i + 1], pixels[i + 2]);
       // The supplied sprite has a flat charcoal backdrop; preserve its navy outlines.
       if (high < 42 && high - low < 8) pixels[i + 3] = 0;
+      if (pixels[i + 3]) visiblePixels++;
     }
+    if (!visiblePixels) return;
     keyedCtx.putImageData(frame, 0, 0);
     assets.landerPixels = keyed;
   }
@@ -132,6 +135,28 @@
     return sprite ? sprite.toDataURL() : assets.paxsi[index].src;
   }
 
+  function drawLanderFallback() {
+    // A built-in pixel-art lander keeps the first room readable even if the PNG is missing online.
+    ctx.save();
+    ctx.translate(0, 121);
+    ctx.fillStyle = "#161c31";
+    ctx.fillRect(28, 17, 124, 54); ctx.fillRect(45, 7, 86, 10); ctx.fillRect(16, 27, 12, 34);
+    ctx.fillRect(140, 34, 26, 37); ctx.fillRect(34, 71, 91, 9);
+    ctx.fillStyle = "#eef2f5"; ctx.fillRect(45, 7, 86, 9); ctx.fillRect(30, 18, 120, 13);
+    ctx.fillStyle = "#c5ced9"; ctx.fillRect(19, 31, 130, 18); ctx.fillRect(25, 49, 124, 13);
+    ctx.fillStyle = "#42b4e8"; ctx.fillRect(51, 31, 17, 18); ctx.fillRect(82, 31, 17, 18); ctx.fillRect(113, 31, 17, 18);
+    ctx.fillStyle = "#e94c56"; ctx.fillRect(17, 49, 133, 8);
+    ctx.fillStyle = "#8b9bad"; ctx.fillRect(29, 58, 90, 13); ctx.fillRect(31, 71, 89, 7);
+    ctx.fillStyle = "#59677b"; ctx.fillRect(58, 78, 14, 27); ctx.fillRect(118, 78, 14, 27);
+    ctx.fillRect(48, 101, 34, 5); ctx.fillRect(108, 101, 34, 5);
+    ctx.fillStyle = "#ffe18c"; ctx.fillRect(155, 51, 34, 22);
+    ctx.fillStyle = "#f4c65a"; ctx.fillRect(143, 73, 76, 12); ctx.fillRect(196, 85, 42, 12); ctx.fillRect(223, 97, 27, 9);
+    ctx.fillStyle = "#96671f"; ctx.fillRect(143, 85, 76, 11); ctx.fillRect(196, 96, 42, 10); ctx.fillRect(223, 106, 27, 4);
+    ctx.fillStyle = "#ffd76e"; ctx.fillRect(0, 38, 12, 10); ctx.fillRect(12, 28, 8, 31);
+    ctx.fillStyle = "#f49a26"; ctx.fillRect(0, 48, 13, 10); ctx.fillRect(13, 59, 7, 6);
+    ctx.restore();
+  }
+
   function drawRoom(time = 0) {
     const w = canvas.width, h = canvas.height, roomIndex = state.room;
     const palettes = [
@@ -152,9 +177,11 @@
     }
     drawFieldProps(time, p.accent);
     // Artemis I opens at the crew's lander. The source art's dark backdrop is keyed out above.
-    if (roomIndex === 0 && assets.landerPixels) {
-      const ship = assets.landerPixels;
-      ctx.drawImage(ship, 0, 225 - ship.height * (250 / ship.width), 250, ship.height * (250 / ship.width));
+    if (roomIndex === 0) {
+      if (assets.landerPixels) {
+        const ship = assets.landerPixels;
+        ctx.drawImage(ship, 0, 225 - ship.height * (250 / ship.width), 250, ship.height * (250 / ship.width));
+      } else drawLanderFallback();
     }
     // Mission console
     const consoleX = roomIndex === 0 ? 280 : 226;
