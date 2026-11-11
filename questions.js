@@ -7,7 +7,7 @@ window.GAME_DATA = {
       kicker: "MISSION 01 / LUNAR ORBIT",
       subtitle: "THE UNCREWED TEST FLIGHT",
       note: "A strange signal is coming from the Moon's far side. The Zippy Tribe is guarding the next door.",
-      radio: "“Can you hear me out there?”",
+      paxsiLine: "“Can you hear me out there?”",
       challenges: [
         {
           type: "question",
@@ -51,7 +51,7 @@ window.GAME_DATA = {
       kicker: "MISSION 02 / CREWED LUNAR FLYBY",
       subtitle: "THE FIRST CREWED ORION FLIGHT",
       note: "Paxsi's voice is breaking up. The next signal is coming from the crew's flight log.",
-      radio: "“I can see your signal getting closer!”",
+      paxsiLine: "“I can see your signal getting closer!”",
       challenges: [
         {
           type: "question",
@@ -131,7 +131,7 @@ window.GAME_DATA = {
       kicker: "MISSION 03 / LANDER DEMONSTRATIONS",
       subtitle: "TESTING THE NEXT LUNAR LANDERS",
       note: "One final room separates your crew from Paxsi. The tribe's newest questions are about the next mission.",
-      radio: "“I'm right behind that door. Hurry!”",
+      paxsiLine: "“I'm right behind that door. Hurry!”",
       challenges: [
         {
           type: "question",
@@ -178,6 +178,7 @@ window.GAME_DATA = {
   ],
   assets: {
     scene: "background_animated_480.gif",
+    lander: "art/artemis-lander-source.png",
     groundTop: "grass_top.png",
     groundFill: "dirt.png",
     logo: "logo-pixelart-512-preview.png",
