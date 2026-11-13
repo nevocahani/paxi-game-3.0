@@ -131,14 +131,45 @@
     };
     if (source.complete) prepare(); else source.addEventListener("load", prepare, { once: true });
   });
-  function freshState() { return { started: false, room: 0, stages: data.rooms.map(() => 0), evidence: data.rooms.map((entry) => entry.challenges.map(() => false)), x: 82, done: false }; }
+  const challengeCatalog = new Map();
+  data.rooms.forEach((entry) => {
+    if (entry.fixedFirst) challengeCatalog.set(entry.fixedFirst.id, entry.fixedFirst);
+    entry.questionPool.forEach((challenge) => challengeCatalog.set(challenge.id, challenge));
+  });
+  challengeCatalog.set(data.finalChallenge.id, data.finalChallenge);
+  function shuffle(items) {
+    const copy = [...items];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }
+  function createChallengeIds() {
+    return data.rooms.map((entry, index) => {
+      const selected = shuffle(entry.questionPool).slice(0, entry.randomCount).map((challenge) => challenge.id);
+      const ids = [...(entry.fixedFirst ? [entry.fixedFirst.id] : []), ...selected];
+      if (index === data.rooms.length - 1) ids.push(data.finalChallenge.id);
+      return ids;
+    });
+  }
+  function freshState() {
+    const challengeIds = createChallengeIds();
+    return { started: false, room: 0, challengeIds, stages: challengeIds.map(() => 0), evidence: challengeIds.map((ids) => ids.map(() => false)), x: 82, done: false };
+  }
   function loadState() {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey));
-      if (!saved || !Array.isArray(saved.stages) || saved.stages.length !== data.rooms.length) return freshState();
+      if (!saved || !Array.isArray(saved.challengeIds) || saved.challengeIds.length !== data.rooms.length || !Array.isArray(saved.stages) || saved.stages.length !== data.rooms.length) return freshState();
+      if (saved.challengeIds.some((ids) => !Array.isArray(ids) || ids.some((id) => !challengeCatalog.has(id)))) return freshState();
+      if (saved.challengeIds.some((ids, index) => ids.length !== data.rooms[index].randomCount + (data.rooms[index].fixedFirst ? 1 : 0) + (index === data.rooms.length - 1 ? 1 : 0))) return freshState();
       delete saved.gateWarningUntil;
-      const fresh = freshState();
-      return { ...fresh, ...saved, stages: saved.stages.map((n, i) => Math.max(0, Math.min(data.rooms[i].challenges.length, Number(n) || 0))), evidence: fresh.evidence.map((roomEvidence, i) => roomEvidence.map((_, j) => Boolean(saved.evidence?.[i]?.[j]))), room: Math.max(0, Math.min(data.rooms.length - 1, Number(saved.room) || 0)) };
+      return {
+        ...saved,
+        stages: saved.stages.map((n, i) => Math.max(0, Math.min(saved.challengeIds[i].length, Number(n) || 0))),
+        evidence: saved.challengeIds.map((ids, i) => ids.map((_, j) => Boolean(saved.evidence?.[i]?.[j]))),
+        room: Math.max(0, Math.min(data.rooms.length - 1, Number(saved.room) || 0))
+      };
     } catch { return freshState(); }
   }
   state = loadState();
@@ -160,10 +191,11 @@
   let gameActive = false;
   let attempts = 3;
   let triedCodes = new Set();
-  const normalizeCodeDigits = (value) => value
-    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
-    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
-    .replace(/\D/g, "").slice(0, 2);
+  let activeEntryMode = "digits";
+  let activeEntryLength = 6;
+  const normalizeEntry = (value, mode = activeEntryMode, length = activeEntryLength) => mode === "digits"
+    ? value.replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit))).replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit))).replace(/\D/g, "").slice(0, length)
+    : value.toLowerCase().replace(/[^a-z]/g, "").slice(0, length);
   let activeKeys = new Set();
   let lastFrame = 0;
   let endingImage = 0;
@@ -171,10 +203,10 @@
   let lastGateHitAt = 0;
   let gateWarningUntil = 0;
   const airlockDoorX = 435;
-  const room = () => data.rooms[state.room];
+  const room = (index = state.room) => ({ ...data.rooms[index], challenges: state.challengeIds[index].map((id) => challengeCatalog.get(id)) });
   const stage = () => room().challenges[state.stages[state.room]];
   const evidenceFound = (roomIndex = state.room, challengeIndex = state.stages[state.room]) => Boolean(state.evidence?.[roomIndex]?.[challengeIndex]);
-  const roomComplete = (index = state.room) => state.stages[index] >= data.rooms[index].challenges.length;
+  const roomComplete = (index = state.room) => state.stages[index] >= room(index).challenges.length;
   function airlockGates(roomIndex = state.room) {
     return roomComplete(roomIndex) && roomIndex < data.rooms.length - 1
       ? [{ x: 366, top: 201 }]
@@ -566,7 +598,7 @@
     $("room-title").textContent = r.title;
     $("room-count").innerHTML = `ROOM 0${state.room + 1} <span>/ 0${data.rooms.length}</span>`;
     $("field-note").textContent = room().note || "Mission data is waiting to be scanned.";
-    const total = data.rooms.reduce((n, entry) => n + entry.challenges.length, 0);
+    const total = data.rooms.reduce((n, entry, i) => n + room(i).challenges.length, 0);
     const complete = data.rooms.reduce((n, entry, i) => n + state.stages[i], 0);
     $("hud-progress").textContent = `DATA ${String(Math.round(complete / total * 100)).padStart(2, "0")}%`;
     const list = $("mission-list"); list.replaceChildren();
@@ -575,11 +607,11 @@
       item.className = `mission-item${i === state.room ? " active" : ""}${roomComplete(i) ? " done" : ""}`;
       const num = document.createElement("span"); num.className = "mission-number"; num.textContent = `0${i + 1}`;
       const desc = document.createElement("div"); const name = document.createElement("div"); name.className = "mission-name"; name.textContent = entry.title;
-      const sub = document.createElement("div"); sub.className = "mission-sub"; sub.textContent = roomComplete(i) ? "CLEARED" : `${String(state.stages[i]).padStart(2, "0")} / ${String(entry.challenges.length).padStart(2, "0")} DATA`; desc.append(name, sub);
+      const sub = document.createElement("div"); sub.className = "mission-sub"; sub.textContent = roomComplete(i) ? "CLEARED" : `${String(state.stages[i]).padStart(2, "0")} / ${String(room(i).challenges.length).padStart(2, "0")} DATA`; desc.append(name, sub);
       const check = document.createElement("span"); check.className = "mission-check"; check.textContent = roomComplete(i) ? "✓" : i === state.room ? "◉" : "·";
       item.append(num, desc, check); list.append(item);
     });
-    const all = state.stages.reduce((n, x, i) => n + (x >= data.rooms[i].challenges.length ? 1 : 0), 0);
+    const all = state.stages.reduce((n, x, i) => n + (x >= room(i).challenges.length ? 1 : 0), 0);
     const currentChallenge = stage();
     const neededArtifact = currentChallenge?.artifact && !evidenceFound() ? currentChallenge.artifact : null;
     $("objective-text").textContent = state.done ? "Paxi is safe. Return to Earth together."
@@ -594,11 +626,42 @@
     if (all === data.rooms.length && !state.done) finishGame();
   }
 
+  function renderPuzzleBoard(challenge) {
+    const board = $("puzzle-board");
+    board.replaceChildren();
+    const addHeading = (text) => { const heading = document.createElement("h3"); heading.textContent = text; board.append(heading); };
+    const addList = (title, values) => {
+      const section = document.createElement("section");
+      const heading = document.createElement("h4"); heading.textContent = title; section.append(heading);
+      const list = document.createElement("ol");
+      values.forEach((value) => { const item = document.createElement("li"); item.textContent = value; list.append(item); });
+      section.append(list); return section;
+    };
+    if (challenge.matching) {
+      addHeading("MISSION FILE · MATCH THE CLUES");
+      const columns = document.createElement("div"); columns.className = "puzzle-columns";
+      columns.append(addList("NUMBERED COMPONENTS", challenge.matching.categories), addList("DESCRIPTIONS · A–F", challenge.matching.descriptions));
+      board.append(columns); board.classList.remove("hidden");
+    } else if (challenge.cipher) {
+      addHeading("ZIPPY SYMBOL KEY");
+      const key = document.createElement("div"); key.className = "cipher-key";
+      challenge.cipher.key.forEach(([symbol, letter]) => {
+        const pair = document.createElement("span"); pair.className = "cipher-pair";
+        const cipherSymbol = document.createElement("b"); cipherSymbol.textContent = symbol;
+        const mappedLetter = document.createElement("i"); mappedLetter.textContent = letter;
+        pair.append(cipherSymbol, mappedLetter); key.append(pair);
+      });
+      const messageLabel = document.createElement("h4"); messageLabel.textContent = "ENCRYPTED MESSAGE";
+      const message = document.createElement("p"); message.className = "cipher-message"; message.textContent = challenge.cipher.message;
+      board.append(key, messageLabel, message); board.classList.remove("hidden");
+    } else board.classList.add("hidden");
+  }
   function showQuiz() {
     if (roomComplete()) return;
     $("touch-controls").classList.add("hidden");
     quizOpen = true; attempts = 3;
     const challenge = stage();
+    renderPuzzleBoard(challenge);
     const previous = state.stages[state.room] > 0 ? room().challenges[state.stages[state.room] - 1] : null;
     const recap = $("previous-recap");
     recap.classList.toggle("hidden", !previous);
@@ -653,18 +716,28 @@
     codeForm.classList.toggle("hidden", challenge.type !== "code");
     answers.classList.toggle("hidden", challenge.type === "code");
     if (challenge.type === "code") {
+      activeEntryMode = challenge.answerMode || "digits";
+      activeEntryLength = challenge.answerLength || 6;
       codeInput.value = "";
       codeInput.disabled = false;
+      codeInput.inputMode = activeEntryMode === "digits" ? "numeric" : "text";
+      codeInput.maxLength = activeEntryMode === "digits" ? activeEntryLength : 60;
+      codeInput.classList.toggle("phrase-entry", activeEntryMode === "letters");
+      codeInput.placeholder = challenge.placeholder || "ENTER CODE";
+      codeInput.setAttribute("aria-label", challenge.prompt);
       codeForm.onsubmit = (event) => {
         event.preventDefault();
-        const code = codeInput.value.trim();
-        if (!/^\d{2}$/.test(code)) {
-          $("quiz-feedback").textContent = "Enter both digits before unlocking.";
+        const code = normalizeEntry(codeInput.value);
+        const expected = normalizeEntry(challenge.answer, activeEntryMode, activeEntryLength);
+        if (code.length !== activeEntryLength) {
+          $("quiz-feedback").textContent = activeEntryMode === "digits"
+            ? "Enter all " + activeEntryLength + " digits before unlocking."
+            : "Enter the full decoded message before unlocking.";
           codeInput.focus();
           return;
         }
         if (triedCodes.has(code)) { $("quiz-feedback").textContent = "You already tried that code."; return; }
-        triedCodes.add(code); checkAnswer(code === challenge.answer, null, challenge);
+        triedCodes.add(code); checkAnswer(code === expected, null, challenge);
       };
       codeInput.focus({ preventScroll: true });
       requestAnimationFrame(() => { if (codeInput.isConnected && !codeForm.classList.contains("hidden")) codeInput.focus({ preventScroll: true }); });
@@ -706,13 +779,16 @@
       $("quiz-feedback").textContent = challenge.type === "code" ? "That code didn't work. Try again." : "Not quite. Try another answer.";
       // Keep a wrong option disabled for the rest of this question to prevent repeat-click retries.
     } else {
-      $("quiz-feedback").textContent = state.room === 0
-        ? "Three strikes. Back to the lander console. Review the clues and try again."
-        : "Three strikes. The airlock is sending you back one room…";
+      const isLastChallengeInRoom = state.stages[state.room] === room().challenges.length - 1;
+      $("quiz-feedback").textContent = isLastChallengeInRoom
+        ? "Three strikes. This final challenge stays in this room. Review the clues and try again."
+        : state.room === 0
+          ? "Three strikes. Back to the lander console. Review the clues and try again."
+          : "Three strikes. The airlock is sending you back one room…";
       const codeInput = $("code-input");
       if (challenge.type === "code" && codeInput) codeInput.disabled = true;
       $("answer-list").querySelectorAll("button").forEach((el) => { el.disabled = true; });
-      window.setTimeout(() => retreat(), 1100);
+      window.setTimeout(() => isLastChallengeInRoom ? showQuiz() : retreat(), 1100);
     }
   }
   function closeQuiz() { quizOpen = false; $("quiz-overlay").classList.add("hidden"); activeKeys.clear(); if (gameActive && !state.done) $("touch-controls").classList.remove("hidden"); }
@@ -770,9 +846,9 @@
     const codeInput = $("code-input");
     const codeEntryOpen = quizOpen && stage()?.type === "code" && !$("question-view").classList.contains("hidden") && codeInput && !codeInput.disabled;
     if (codeEntryOpen && event.target !== codeInput && !event.ctrlKey && !event.altKey && !event.metaKey) {
-      if (/^\d$/.test(event.key)) {
+      if ((activeEntryMode === "digits" && /^\d$/.test(event.key)) || (activeEntryMode === "letters" && /^[a-z]$/i.test(event.key))) {
         event.preventDefault();
-        codeInput.value = (codeInput.value + event.key).slice(0, 2);
+        codeInput.value = (codeInput.value + event.key).slice(0, activeEntryLength);
         codeInput.dispatchEvent(new Event("input", { bubbles: true }));
         codeInput.focus({ preventScroll: true });
         return;
@@ -807,8 +883,10 @@
   window.addEventListener("blur", () => activeKeys.clear());
   $("code-input").addEventListener("input", (event) => {
     const input = event.currentTarget;
-    const normalized = normalizeCodeDigits(input.value);
-    if (input.value !== normalized) input.value = normalized;
+    if (activeEntryMode === "digits") {
+      const normalized = normalizeEntry(input.value);
+      if (input.value !== normalized) input.value = normalized;
+    } else input.value = input.value.replace(/[^a-z\s]/gi, "").slice(0, 60);
   });
   $("code-input").addEventListener("keydown", (event) => event.stopPropagation());
   function bindTouchControls() {
