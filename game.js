@@ -160,6 +160,10 @@
   let gameActive = false;
   let attempts = 3;
   let triedCodes = new Set();
+  const normalizeCodeDigits = (value) => value
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/\D/g, "").slice(0, 2);
   let activeKeys = new Set();
   let lastFrame = 0;
   let endingImage = 0;
@@ -645,18 +649,27 @@
     triedCodes = new Set();
     $("attempts-label").textContent = "ATTEMPTS LEFT: 3";
     const answers = $("answer-list"); answers.replaceChildren();
+    const codeForm = $("code-form"), codeInput = $("code-input");
+    codeForm.classList.toggle("hidden", challenge.type !== "code");
+    answers.classList.toggle("hidden", challenge.type === "code");
     if (challenge.type === "code") {
-      const form = document.createElement("form"); form.className = "code-form";
-      const input = document.createElement("input"); input.type = "text"; input.className = "code-input"; input.id = "code-input"; input.inputMode = "numeric"; input.pattern = "[0-9]*"; input.autocomplete = "off"; input.maxLength = 2; input.setAttribute("aria-label", "Enter the two-digit escape code"); input.placeholder = "••";
-      input.addEventListener("input", () => { input.value = input.value.replace(/\D/g, "").slice(0, 2); });
-      input.addEventListener("keydown", (event) => event.stopPropagation());
-      const button = document.createElement("button"); button.className = "primary-button"; button.type = "submit"; button.textContent = "UNLOCK →";
-      form.append(input, button); form.addEventListener("submit", (event) => {
-        event.preventDefault(); const code = input.value.trim();
+      codeInput.value = "";
+      codeInput.disabled = false;
+      codeForm.onsubmit = (event) => {
+        event.preventDefault();
+        const code = codeInput.value.trim();
+        if (!/^\d{2}$/.test(code)) {
+          $("quiz-feedback").textContent = "Enter both digits before unlocking.";
+          codeInput.focus();
+          return;
+        }
         if (triedCodes.has(code)) { $("quiz-feedback").textContent = "You already tried that code."; return; }
         triedCodes.add(code); checkAnswer(code === challenge.answer, null, challenge);
-      }); answers.append(form);
+      };
+      codeInput.focus({ preventScroll: true });
+      requestAnimationFrame(() => { if (codeInput.isConnected && !codeForm.classList.contains("hidden")) codeInput.focus({ preventScroll: true }); });
     } else {
+      codeForm.onsubmit = null;
       challenge.options.forEach((option, index) => {
         const button = document.createElement("button"); button.type = "button"; button.className = "answer-option";
         const letter = document.createElement("span"); letter.className = "answer-letter"; letter.textContent = String.fromCharCode(65 + index);
@@ -664,10 +677,11 @@
         button.addEventListener("click", () => checkAnswer(index === challenge.answerIndex, button, challenge)); answers.append(button);
       });
     }
-    if (challenge.type === "code") $("answer-list").querySelector("input")?.focus();
   }
   function checkAnswer(correct, button, challenge) {
     if (correct) {
+      const codeInput = $("code-input");
+      if (challenge.type === "code" && codeInput) codeInput.disabled = true;
       if (button) button.classList.add("correct");
       const card = $("quiz-overlay").querySelector(".overlay-card");
       card.classList.remove("answer-pop"); void card.offsetWidth; card.classList.add("answer-pop");
@@ -695,6 +709,8 @@
       $("quiz-feedback").textContent = state.room === 0
         ? "Three strikes. Back to the lander console. Review the clues and try again."
         : "Three strikes. The airlock is sending you back one room…";
+      const codeInput = $("code-input");
+      if (challenge.type === "code" && codeInput) codeInput.disabled = true;
       $("answer-list").querySelectorAll("button").forEach((el) => { el.disabled = true; });
       window.setTimeout(() => retreat(), 1100);
     }
@@ -751,6 +767,34 @@
 
   window.addEventListener("keydown", (event) => {
     const key = controlKey(event);
+    const codeInput = $("code-input");
+    const codeEntryOpen = quizOpen && stage()?.type === "code" && !$("question-view").classList.contains("hidden") && codeInput && !codeInput.disabled;
+    if (codeEntryOpen && event.target !== codeInput && !event.ctrlKey && !event.altKey && !event.metaKey) {
+      if (/^\d$/.test(event.key)) {
+        event.preventDefault();
+        codeInput.value = (codeInput.value + event.key).slice(0, 2);
+        codeInput.dispatchEvent(new Event("input", { bubbles: true }));
+        codeInput.focus({ preventScroll: true });
+        return;
+      }
+      if (event.key === "Backspace") {
+        event.preventDefault();
+        codeInput.value = codeInput.value.slice(0, -1);
+        codeInput.dispatchEvent(new Event("input", { bubbles: true }));
+        codeInput.focus({ preventScroll: true });
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        codeInput.form?.requestSubmit();
+        return;
+      }
+    }
+    const inQuiz = event.target instanceof HTMLElement && event.target.closest("#quiz-overlay");
+    if (quizOpen && inQuiz) {
+      if (event.key === "Escape") closeQuiz();
+      return;
+    }
     const editingCode = event.target instanceof HTMLElement && event.target.id === "code-input";
     if (editingCode) return;
     if (["ArrowLeft", "ArrowRight", "ArrowUp", " "].includes(key)) event.preventDefault();
@@ -761,6 +805,12 @@
   });
   window.addEventListener("keyup", (event) => { const key = controlKey(event); activeKeys.delete(key); activeKeys.delete(key.toLowerCase()); });
   window.addEventListener("blur", () => activeKeys.clear());
+  $("code-input").addEventListener("input", (event) => {
+    const input = event.currentTarget;
+    const normalized = normalizeCodeDigits(input.value);
+    if (input.value !== normalized) input.value = normalized;
+  });
+  $("code-input").addEventListener("keydown", (event) => event.stopPropagation());
   function bindTouchControls() {
     const hold = (id, key) => {
       const button = $(id);
