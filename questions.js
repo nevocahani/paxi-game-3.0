@@ -19,7 +19,7 @@ window.GAME_DATA = {
         brief: "Match each mission description to the numbered Artemis I component. Enter the six component numbers in A–F order.",
         lesson: "The Zippy leader mixed up the Artemis I mission file. Match each description to one numbered mission component, then read your answers from A to F to unlock the code.",
         paxsiTip: "Use each numbered component once. The descriptions are out of order—match them, then enter the numbers in A–F order.",
-        prompt: "Enter the six-digit code formed by matching descriptions A–F to the mission components.",
+        prompt: "Match descriptions A–F to the numbered mission components. Use each number once, then check your matches.",
         placeholder: "······",
         matching: {
           categories: ["Heat shield test", "Lunar orbit", "Launch vehicle", "Uncrewed test flight", "Mission duration and ending", "Maximum distance in space"],
