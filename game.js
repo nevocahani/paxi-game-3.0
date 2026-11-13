@@ -202,6 +202,7 @@
   let particles = [];
   let lastGateHitAt = 0;
   let gateWarningUntil = 0;
+  let wasNearGate = false;
   const airlockDoorX = 435;
   const room = (index = state.room) => ({ ...data.rooms[index], challenges: state.challengeIds[index].map((id) => challengeCatalog.get(id)) });
   const stage = () => room().challenges[state.stages[state.room]];
@@ -587,6 +588,10 @@
         }
       }
     }
+    const nearEnergyGate = gameActive && !quizOpen && !state.done && airlockGates().some((gate) => Math.abs(player.x - gate.x) < 76);
+    if (nearEnergyGate && !wasNearGate) gateWarningUntil = performance.now() + 2400;
+    wasNearGate = nearEnergyGate;
+    $("game-alert").classList.toggle("hidden", !(nearEnergyGate && gateWarningUntil > performance.now()));
     drawRoom(time);
     drawParticles(dt);
     requestAnimationFrame(draw);
@@ -616,13 +621,11 @@
     const neededArtifact = currentChallenge?.artifact && !evidenceFound() ? currentChallenge.artifact : null;
     $("objective-text").textContent = state.done ? "Paxi is safe. Return to Earth together."
       : roomComplete()
-      ? (state.room < data.rooms.length - 1 ? "Jump over the energy gate, then press E at the airlock." : "All missions cleared. Paxi is just ahead!")
+      ? (state.room < data.rooms.length - 1 ? "Proceed to the airlock." : "All missions cleared. Paxi is just ahead!")
       : neededArtifact ? `Search for the ${neededArtifact.name}, move close, and press E to scan it.`
       : currentChallenge?.artifact ? "Evidence recovered. Return to the console to reopen the briefing."
       : "Find the mission console and press E.";
-    const gateWarning = gateWarningUntil > performance.now();
-    $("status-text").textContent = state.done ? "PAXI RESCUED" : gateWarning ? "ENERGY GATE · JUMP!" : roomComplete() ? "EXIT UNLOCKED" : "SYSTEMS NOMINAL";
-    $("status-chip").querySelector(".status-light").style.background = state.done ? "#c7f36b" : gateWarning ? "#e77a6b" : roomComplete() ? "#8bd9f5" : "#c7f36b";
+    $("status-chip").classList.add("hidden");
     if (all === data.rooms.length && !state.done) finishGame();
   }
 
@@ -832,11 +835,11 @@
   }
   function closeQuiz() { quizOpen = false; $("quiz-overlay").classList.add("hidden"); activeKeys.clear(); if (gameActive && !state.done) $("touch-controls").classList.remove("hidden"); }
   function retreat() {
-    closeQuiz(); gateWarningUntil = 0; state.room = Math.max(0, state.room - 1); player.x = state.room === 0 ? 82 : 420; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true; save(); updateHud();
+    closeQuiz(); gateWarningUntil = 0; wasNearGate = false; state.room = Math.max(0, state.room - 1); player.x = state.room === 0 ? 82 : 420; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true; save(); updateHud();
   }
   function advanceRoom() {
     if (!roomComplete()) { showQuiz(); return; }
-    if (state.room < data.rooms.length - 1) { gateWarningUntil = 0; state.room += 1; player.x = 40; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true; save(); updateHud(); }
+    if (state.room < data.rooms.length - 1) { gateWarningUntil = 0; wasNearGate = false; state.room += 1; player.x = 40; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true; save(); updateHud(); }
   }
   function interact() {
     if (!gameActive || state.done || quizOpen) return;
@@ -870,7 +873,7 @@
   }
   function resetGame() {
     state = freshState(); gameActive = false; player.x = 82; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true;
-    gateWarningUntil = 0; $("touch-controls").classList.add("hidden");
+    gateWarningUntil = 0; wasNearGate = false; $("game-alert").classList.add("hidden"); $("touch-controls").classList.add("hidden");
     localStorage.removeItem(storageKey); $("ending-overlay").classList.add("hidden"); $("quiz-overlay").classList.add("hidden");
     quizOpen = false; $("intro-step").classList.remove("hidden"); $("story-step").classList.add("hidden"); $("start-label").textContent = "START MISSION"; updateHud(); $("start-overlay").classList.remove("hidden");
   }
@@ -925,7 +928,7 @@
     if (activeEntryMode === "digits") {
       const normalized = normalizeEntry(input.value);
       if (input.value !== normalized) input.value = normalized;
-    } else input.value = input.value.replace(/[^a-z\s]/gi, "").slice(0, 60);
+    } else input.value = input.value.replace(/[^a-z\s,!]/gi, "").slice(0, 60);
   });
   $("code-input").addEventListener("keydown", (event) => event.stopPropagation());
   function bindTouchControls() {
