@@ -7,9 +7,9 @@
     <meta name="description" content="A pixel-art Artemis space escape room. Help the astronauts rescue Paxi!" />
     <title>Rescue Paxi! — Artemis Escape Room</title>
     <link rel="icon" type="image/png" href="./logo-pixelart-512-preview.png" />
-   <link rel="stylesheet" href="./styles.css?v=2026-11-13-17" />
-    <script src="./questions.js?v=2026-11-13-16" defer></script>
-    <script src="./game.js?v=2026-11-13-16" defer></script>
+    <link rel="stylesheet" href="./styles.css?v=2026-11-13-18" />
+    <script src="./questions.js?v=2026-11-13-18" defer></script>
+    <script src="./game.js?v=2026-11-13-18" defer></script>
   </head>
   <body>
     <main class="shell" id="top">
@@ -33,7 +33,6 @@
             <canvas id="game" width="480" height="270" tabindex="0" aria-label="Pixel-art game. Use A and D or the arrow keys to move, Space to jump, and E to interact."></canvas>
             <div class="canvas-scanlines" aria-hidden="true"></div>
             <div class="canvas-hud"><span><i class="hud-dot"></i> LIVE FEED</span><span id="hud-progress">DATA 00%</span></div>
-            <div class="canvas-hint" id="canvas-hint">MOVE <kbd>A</kbd><kbd>D</kbd> &nbsp; JUMP <kbd>SPACE</kbd> &nbsp; INTERACT <kbd>E</kbd></div>
             <div class="touch-controls hidden" id="touch-controls" aria-label="Touch game controls">
               <div class="touch-movement"><button type="button" id="touch-left" aria-label="Move left">◀</button><button type="button" id="touch-right" aria-label="Move right">▶</button></div>
               <div class="touch-actions"><button type="button" id="touch-jump">JUMP</button><button type="button" id="touch-use">USE</button></div>
@@ -75,6 +74,7 @@
               <div class="overlay-card quiz-card">
                 <div class="quiz-topline"><span id="quiz-room-label">ARTEMIS I</span><span id="quiz-number">CHALLENGE 01</span></div>
                 <div class="progress-track"><span id="quiz-progress"></span></div>
+                <div class="puzzle-board hidden" id="puzzle-board"></div>
                 <section class="lesson-view" id="lesson-view" aria-labelledby="lesson-title">
                   <div class="lesson-tag"><span class="lesson-mark">✳</span> BEFORE THE QUESTION <span class="lesson-rule"></span></div>
                   <div class="previous-recap hidden" id="previous-recap">
