@@ -27,10 +27,10 @@ window.GAME_DATA = {
         },
         {
           type: "question",
-          brief: "Orion re-entered Earth’s atmosphere at about 40,000 km/h, putting its heat shield to the test.",
+          brief: "Orion made an extremely fast return through Earth's atmosphere. Use the mission log to find its recorded speed.",
           title: "The fiery return",
           lesson: "At the end of Artemis I, Orion came back through Earth's atmosphere at about 40,000 kilometers per hour. The heat shield had to protect the capsule during that extremely fast return.",
-          paxsiTip: "Look for the speed with four zeros after the 4. That same first digit will help you open the next lock.",
+          paxsiTip: "Find Orion's re-entry speed in the mission record. Its first digit will be useful for the next lock.",
           prompt: "About how fast was Orion traveling when it re-entered Earth's atmosphere and tested its heat shield?",
           options: ["10,000 km/h", "40,000 km/h", "100,000 km/h"],
           answerIndex: 1,
@@ -38,13 +38,13 @@ window.GAME_DATA = {
         },
         {
           type: "code",
-          brief: "The escape code combines Question 1 with the first digit of Orion’s 40,000 km/h return speed.",
+          brief: "Combine the number of the first challenge with the first digit of Orion's recorded re-entry speed, in that order.",
           title: "Unlock the restraints",
-          lesson: "The first answer was question 1. Orion's return speed was about 40,000 km/h, so its first digit is 4. Join the question number and that digit to make the code.",
+          lesson: "The Zippy leader uses a two-part code. Read the number of the first challenge and the first digit of Orion's recorded re-entry speed, then place them side by side in that order.",
           paxsiTip: "You already found both pieces. Put them together in that order — no extra calculation needed.",
-          prompt: "The Zippy leader left a code clue: join the number of the first question to the first digit of Orion's correct re-entry speed.",
+          prompt: "Enter two digits: the number of Challenge 1, followed by the first digit of Orion's re-entry speed. Put them side by side; do not add them.",
           answer: "14",
-          hint: "Use question 1 and the first digit of 40,000."
+          hint: "Use the first challenge number and the first digit shown in Orion's re-entry speed record."
         }
       ]
     },
@@ -53,12 +53,12 @@ window.GAME_DATA = {
       title: "Artemis II",
       kicker: "MISSION 02 / CREWED LUNAR FLYBY",
       subtitle: "THE FIRST CREWED ORION FLIGHT",
-      note: "ORBITAL FLIGHT DECK / Scan the glowing mission evidence. Jump over the active energy gates to reach the next find.",
+      note: "ORBITAL FLIGHT DECK / Find each mission record and press E to scan it. Clear the archive to activate the airlock gate.",
       paxsiLine: "“I can see your signal getting closer!”",
       challenges: [
         {
           type: "question",
-          artifact: { name: "Flight Recorder", icon: "recorder", x: 88, clue: "ARTEMIS II FLIGHT PATH: lunar flyby → free-return trajectory → Earth. No landing." },
+          artifact: { name: "Flight Recorder", icon: "recorder", x: 126, clue: "ARTEMIS II FLIGHT PATH: lunar flyby → free-return trajectory → Earth. No landing." },
           title: "The flight profile",
           lesson: "Artemis II carried astronauts around the Moon and back to Earth, but it did not land. Orion followed a free-return path: after the lunar flyby, the Earth–Moon gravity helped guide it home.",
           paxsiTip: "A flyby means passing by the Moon. Keep an eye out for answers that describe a landing — that was not this mission.",
@@ -138,7 +138,7 @@ window.GAME_DATA = {
       title: "Artemis III",
       kicker: "MISSION 03 / LANDER DEMONSTRATIONS",
       subtitle: "TESTING THE NEXT LUNAR LANDERS",
-      note: "LANDER TEST BAY / Scan the test tags and docking targets. Use the lit platforms and jump the energy gates.",
+      note: "LANDER TEST BAY / Scan the test tags and docking targets to reveal each challenge.",
       paxsiLine: "“I'm right behind that door. Hurry!”",
       challenges: [
         {
@@ -189,7 +189,9 @@ window.GAME_DATA = {
   ],
   assets: {
     scene: "background_animated_480.gif",
-    lander: "art/artemis-lander-source.png",
+    lander: "spaceship_pixel_art_only.png",
+    rocket: "rocket.png",
+    ship: "ship.png",
     groundTop: "grass_top.png",
     groundFill: "dirt.png",
     logo: "logo-pixelart-512-preview.png",
