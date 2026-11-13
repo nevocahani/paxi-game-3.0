@@ -713,9 +713,43 @@
     $("attempts-label").textContent = "ATTEMPTS LEFT: 3";
     const answers = $("answer-list"); answers.replaceChildren();
     const codeForm = $("code-form"), codeInput = $("code-input");
-    codeForm.classList.toggle("hidden", challenge.type !== "code");
-    answers.classList.toggle("hidden", challenge.type === "code");
-    if (challenge.type === "code") {
+    const matchingForm = $("matching-answer");
+    matchingForm.replaceChildren();
+    const matchingPuzzle = Boolean(challenge.matching);
+    codeForm.classList.toggle("hidden", challenge.type !== "code" || matchingPuzzle);
+    matchingForm.classList.toggle("hidden", !matchingPuzzle);
+    answers.classList.toggle("hidden", challenge.type === "code" || matchingPuzzle);
+    if (matchingPuzzle) {
+      const selects = [];
+      ["A", "B", "C", "D", "E", "F"].forEach((letter) => {
+        const row = document.createElement("label"); row.className = "matching-row";
+        const label = document.createElement("span"); label.className = "matching-letter"; label.textContent = letter;
+        const select = document.createElement("select"); select.className = "matching-select"; select.setAttribute("aria-label", "Choose the mission component for description " + letter);
+        const empty = document.createElement("option"); empty.value = ""; empty.textContent = "Choose a component…"; select.append(empty);
+        challenge.matching.categories.forEach((category, index) => {
+          const option = document.createElement("option"); option.value = String(index + 1); option.textContent = (index + 1) + ". " + category; select.append(option);
+        });
+        selects.push(select); row.append(label, select); matchingForm.append(row);
+      });
+      const updateAvailableNumbers = () => {
+        selects.forEach((select) => {
+          const used = new Set(selects.filter((other) => other !== select && other.value).map((other) => other.value));
+          [...select.options].forEach((option) => { option.disabled = Boolean(option.value && used.has(option.value)); });
+        });
+      };
+      selects.forEach((select) => select.addEventListener("change", updateAvailableNumbers));
+      const submit = document.createElement("button"); submit.type = "submit"; submit.className = "primary-button"; submit.textContent = "CHECK MATCHES →"; matchingForm.append(submit);
+      matchingForm.onsubmit = (event) => {
+        event.preventDefault();
+        const values = selects.map((select) => select.value);
+        if (values.some((value) => !value)) { $("quiz-feedback").textContent = "Match all six descriptions before checking."; return; }
+        if (new Set(values).size !== values.length) { $("quiz-feedback").textContent = "Use each mission component number once."; return; }
+        const code = values.join("");
+        if (triedCodes.has(code)) { $("quiz-feedback").textContent = "You already tried that matching."; return; }
+        triedCodes.add(code); checkAnswer(code === challenge.answer, null, challenge);
+      };
+      selects[0]?.focus({ preventScroll: true });
+    } else if (challenge.type === "code") {
       activeEntryMode = challenge.answerMode || "digits";
       activeEntryLength = challenge.answerLength || 6;
       codeInput.value = "";
@@ -743,6 +777,7 @@
       requestAnimationFrame(() => { if (codeInput.isConnected && !codeForm.classList.contains("hidden")) codeInput.focus({ preventScroll: true }); });
     } else {
       codeForm.onsubmit = null;
+      matchingForm.onsubmit = null;
       challenge.options.forEach((option, index) => {
         const button = document.createElement("button"); button.type = "button"; button.className = "answer-option";
         const letter = document.createElement("span"); letter.className = "answer-letter"; letter.textContent = String.fromCharCode(65 + index);
@@ -764,6 +799,7 @@
       $("quiz-feedback").className = "quiz-feedback good";
       $("attempts-label").textContent = "ACCESS GRANTED";
       [...$("answer-list").querySelectorAll("button")].forEach((el) => { el.disabled = true; });
+      $("matching-answer").querySelectorAll("select,button").forEach((el) => { el.disabled = true; });
       window.setTimeout(() => {
         state.stages[state.room] += 1;
         if (roomComplete() && state.room === data.rooms.length - 1) finishGame();
@@ -776,7 +812,9 @@
     attempts -= 1;
     $("attempts-label").textContent = `ATTEMPTS LEFT: ${attempts}`;
     if (attempts > 0) {
-      $("quiz-feedback").textContent = challenge.type === "code" ? "That code didn't work. Try again." : "Not quite. Try another answer.";
+      $("quiz-feedback").textContent = challenge.matching
+        ? "That matching is not quite right. Adjust the pairings and try again."
+        : challenge.type === "code" ? "That code didn't work. Try again." : "Not quite. Try another answer.";
       // Keep a wrong option disabled for the rest of this question to prevent repeat-click retries.
     } else {
       const isLastChallengeInRoom = state.stages[state.room] === room().challenges.length - 1;
@@ -788,6 +826,7 @@
       const codeInput = $("code-input");
       if (challenge.type === "code" && codeInput) codeInput.disabled = true;
       $("answer-list").querySelectorAll("button").forEach((el) => { el.disabled = true; });
+      $("matching-answer").querySelectorAll("select,button").forEach((el) => { el.disabled = true; });
       window.setTimeout(() => isLastChallengeInRoom ? showQuiz() : retreat(), 1100);
     }
   }
@@ -844,7 +883,7 @@
   window.addEventListener("keydown", (event) => {
     const key = controlKey(event);
     const codeInput = $("code-input");
-    const codeEntryOpen = quizOpen && stage()?.type === "code" && !$("question-view").classList.contains("hidden") && codeInput && !codeInput.disabled;
+    const codeEntryOpen = quizOpen && stage()?.type === "code" && !stage()?.matching && !$("question-view").classList.contains("hidden") && codeInput && !codeInput.disabled;
     if (codeEntryOpen && event.target !== codeInput && !event.ctrlKey && !event.altKey && !event.metaKey) {
       if ((activeEntryMode === "digits" && /^\d$/.test(event.key)) || (activeEntryMode === "letters" && /^[a-z]$/i.test(event.key))) {
         event.preventDefault();
