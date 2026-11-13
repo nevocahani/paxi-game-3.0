@@ -46,11 +46,6 @@
   assets.paxsiPixels = [];
   let state = null;
   const doorOpenAt = data.rooms.map(() => null);
-  const roomNotes = [
-    "A strange signal is coming from the Moon's far side. The Zippy Tribe is guarding the next door.",
-    "Paxsi's voice is breaking up. The next signal is coming from the crew's flight log.",
-    "One final room separates your crew from Paxsi. The tribe's newest questions are about the next mission."
-  ];
   function makePixelSprite(source) {
     if (!source.complete || !source.naturalWidth) return null;
     const width = source.naturalWidth, height = source.naturalHeight;
@@ -139,10 +134,34 @@
   let activeKeys = new Set();
   let lastFrame = 0;
   let endingImage = 0;
+  let particles = [];
+  let lastGateHitAt = 0;
   const room = () => data.rooms[state.room];
   const stage = () => room().challenges[state.stages[state.room]];
   const evidenceFound = (roomIndex = state.room, challengeIndex = state.stages[state.room]) => Boolean(state.evidence?.[roomIndex]?.[challengeIndex]);
   const roomComplete = (index = state.room) => state.stages[index] >= data.rooms[index].challenges.length;
+  function airlockGates(roomIndex = state.room) {
+    return roomComplete(roomIndex) && roomIndex < data.rooms.length - 1
+      ? [{ x: 376, top: 201 }, { x: 402, top: 201 }]
+      : [];
+  }
+  function burstPixels(x, y, colors, count = 18) {
+    for (let i = 0; i < count; i++) particles.push({
+      x, y, vx: (Math.random() - .5) * 3.2, vy: -Math.random() * 3.6 - .5,
+      size: Math.random() > .7 ? 3 : 2, life: 30 + Math.random() * 18,
+      color: colors[i % colors.length]
+    });
+  }
+  function drawParticles(dt) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const spark = particles[i];
+      spark.x += spark.vx * dt; spark.y += spark.vy * dt; spark.vy += .11 * dt; spark.life -= dt;
+      if (spark.life <= 0) { particles.splice(i, 1); continue; }
+      ctx.globalAlpha = Math.min(1, spark.life / 12); ctx.fillStyle = spark.color;
+      ctx.fillRect(Math.round(spark.x), Math.round(spark.y), spark.size, spark.size);
+    }
+    ctx.globalAlpha = 1;
+  }
   function save() { state.x = Math.round(player.x); try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch {} }
   function paxsiDataUrl(index = 0) {
     const sprite = assets.paxsiPixels[index];
@@ -186,6 +205,71 @@
     });
   }
 
+  function drawBackdrop(roomIndex, time) {
+    if (roomIndex === 0) {
+      if (assets.scene.complete && assets.scene.naturalWidth) ctx.drawImage(assets.scene, 0, 0, canvas.width, canvas.height);
+      else { ctx.fillStyle = "#211a32"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+      // Animated foreground specks create visible motion even when the GIF is paused by a browser.
+      for (let i = 0; i < 24; i++) {
+        const x = (i * 83 + time * (0.008 + (i % 4) * 0.003)) % canvas.width;
+        const y = 28 + (i * 47) % 138;
+        ctx.globalAlpha = .18 + .2 * (1 + Math.sin(time / 370 + i));
+        ctx.fillStyle = i % 3 ? "#ffd98a" : "#a8dff0";
+        ctx.fillRect(x, y, i % 7 === 0 ? 2 : 1, 1);
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
+    if (roomIndex === 1) {
+      const sky = ctx.createLinearGradient(0, 0, 0, 225);
+      sky.addColorStop(0, "#07111f"); sky.addColorStop(1, "#182f43");
+      ctx.fillStyle = sky; ctx.fillRect(0, 0, 480, 270);
+      for (let i = 0; i < 58; i++) {
+        const x = (i * 127 + 19) % 480, y = (i * 43 + 13) % 190;
+        ctx.globalAlpha = .32 + .45 * (1 + Math.sin(time / (280 + i % 5 * 45) + i));
+        ctx.fillStyle = i % 6 ? "#d8eaff" : "#9ad9ce";
+        ctx.fillRect(x, y, i % 11 === 0 ? 2 : 1, i % 11 === 0 ? 2 : 1);
+      }
+      ctx.globalAlpha = 1;
+      // A slowly turning blue Earth makes this room feel like an orbital deck.
+      ctx.fillStyle = "#102536"; ctx.beginPath(); ctx.arc(410, 72, 46, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#287da4"; ctx.beginPath(); ctx.arc(410, 72, 38, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#4a9b85"; ctx.fillRect(390 + Math.round(Math.sin(time / 1300) * 4), 56, 15, 8); ctx.fillRect(418, 77, 13, 10);
+      ctx.fillStyle = "#bde3e9"; ctx.fillRect(376, 49, 9, 3); ctx.fillRect(431, 91, 10, 3);
+      ctx.strokeStyle = "#9ad9ce66"; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(410, 72, 61, 21, -.3, 0, Math.PI * 2); ctx.stroke();
+      return;
+    }
+    const hangar = ctx.createLinearGradient(0, 0, 0, 225);
+    hangar.addColorStop(0, "#17232e"); hangar.addColorStop(.62, "#293b43"); hangar.addColorStop(1, "#475047");
+    ctx.fillStyle = hangar; ctx.fillRect(0, 0, 480, 270);
+    ctx.fillStyle = "#52615d";
+    for (let x = 18; x < 480; x += 64) { ctx.fillRect(x, 20, 4, 205); ctx.fillRect(x + 4, 26, 48, 2); }
+    ctx.fillStyle = "#d5d29a";
+    for (let x = 40; x < 480; x += 128) {
+      const glow = .55 + .35 * Math.sin(time / 260 + x);
+      ctx.globalAlpha = glow; ctx.fillRect(x, 30, 24, 3); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = "#17242a"; ctx.fillRect(0, 212, 480, 13);
+    ctx.fillStyle = "#668078"; ctx.fillRect(0, 211, 480, 2);
+  }
+
+  function drawGround(roomIndex, accent) {
+    if (roomIndex === 0) {
+      for (let x = 0; x < 480; x += 32) {
+        if (assets.groundTop.complete && assets.groundTop.naturalWidth) ctx.drawImage(assets.groundTop, x, 225, 32, 32);
+        else { ctx.fillStyle = "#34404a"; ctx.fillRect(x, 225, 32, 32); }
+        if (assets.groundFill.complete && assets.groundFill.naturalWidth) ctx.drawImage(assets.groundFill, x, 257, 32, 32);
+      }
+      return;
+    }
+    ctx.fillStyle = roomIndex === 1 ? "#263843" : "#303a39"; ctx.fillRect(0, 225, 480, 45);
+    ctx.fillStyle = accent; ctx.globalAlpha = .8; ctx.fillRect(0, 223, 480, 2); ctx.globalAlpha = 1;
+    for (let x = 10; x < 480; x += 40) {
+      ctx.fillStyle = roomIndex === 1 ? "#344c56" : "#414d45"; ctx.fillRect(x, 232, 30, 2);
+      ctx.fillStyle = "#89938a"; ctx.fillRect(x + 3, 241, 2, 2); ctx.fillRect(x + 25, 241, 2, 2);
+    }
+  }
+
   function drawRoom(time = 0) {
     const w = canvas.width, h = canvas.height, roomIndex = state.room;
     const palettes = [
@@ -194,17 +278,11 @@
       { accent: "#d9a4da", tint: "rgba(50, 31, 66, .3)" }
     ];
     const p = palettes[roomIndex];
-    // The team's animated alien-world art is the real backdrop; the 32px tiles form a walkable foreground.
     ctx.imageSmoothingEnabled = false;
-    if (assets.scene.complete && assets.scene.naturalWidth) ctx.drawImage(assets.scene, 0, 0, w, h);
-    else { ctx.fillStyle = "#211a32"; ctx.fillRect(0, 0, w, h); }
+    drawBackdrop(roomIndex, time);
     if (p.tint) { ctx.fillStyle = p.tint; ctx.fillRect(0, 0, w, h); }
-    for (let x = 0; x < w; x += 32) {
-      if (assets.groundTop.complete && assets.groundTop.naturalWidth) ctx.drawImage(assets.groundTop, x, 225, 32, 32);
-      else { ctx.fillStyle = "#34404a"; ctx.fillRect(x, 225, 32, 32); }
-      if (assets.groundFill.complete && assets.groundFill.naturalWidth) ctx.drawImage(assets.groundFill, x, 257, 32, 32);
-    }
-    drawFieldProps(time, p.accent);
+    drawGround(roomIndex, p.accent);
+    if (roomIndex === 0) drawFieldProps(time, p.accent);
     drawMissionSetpiece(roomIndex, time);
     // Artemis I opens at the crew's lander. The source art's dark backdrop is keyed out above.
     if (roomIndex === 0) {
@@ -237,6 +315,7 @@
       ctx.fillStyle = "#101923"; ctx.fillRect(doorX - 16, 172, 32, 53);
       ctx.fillStyle = isDoorOpen ? "#b8ed76" : "#6e7a86"; ctx.fillRect(doorX - 11, 177, 22, 48);
     }
+    drawAirlockGates(time, roomIndex);
     // Use Paxsi's two supplied expressions as a small 32x32 pixel-art character.
     const paxsiSprite = assets.paxsiPixels[Math.floor(time / 560) % Math.max(1, assets.paxsiPixels.length)];
     if (paxsiSprite) {
@@ -262,7 +341,8 @@
     const canInteract = !needsEvidence && Math.abs(player.x - targetX) < 37 && player.grounded;
     if (needsEvidence && Math.abs(player.x - artifact.x) < 23 && player.grounded) {
       state.evidence[state.room][state.stages[state.room]] = true;
-      save(); showQuiz();
+      burstPixels(artifact.x, 202, [p.accent, "#f4f0d3", "#c9d77b"], 16);
+      save(); updateHud(); showQuiz();
     }
     updateWorldDialogue(canInteract, targetX, needsEvidence ? artifact : null);
     // A faint beacon marks the console if the player is far away.
@@ -290,6 +370,19 @@
       ctx.fillStyle = "#59677b"; ctx.fillRect(322, 141, 8, 84); ctx.fillRect(392, 141, 8, 84);
     }
     ctx.globalAlpha = 1;
+  }
+
+  function drawAirlockGates(time, roomIndex) {
+    airlockGates(roomIndex).forEach((gate, index) => {
+      const pulse = .62 + .32 * Math.sin(time / 90 + index);
+      ctx.fillStyle = "#202a30"; ctx.fillRect(gate.x - 3, 210, 6, 15);
+      ctx.fillStyle = "#87928a"; ctx.fillRect(gate.x - 5, 222, 10, 3);
+      ctx.fillStyle = "#e77a6b"; ctx.globalAlpha = pulse; ctx.fillRect(gate.x - 2, gate.top, 4, 23);
+      ctx.fillStyle = "#ffe08a"; ctx.fillRect(gate.x - 1, gate.top + 2, 2, 18);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#e77a6b"; ctx.globalAlpha = .18 + pulse * .12; ctx.fillRect(gate.x - 8, gate.top, 16, 2);
+      ctx.globalAlpha = 1;
+    });
   }
 
   function drawFieldArtifact(artifact, time, accent) {
@@ -390,6 +483,7 @@
     const left = activeKeys.has("ArrowLeft") || activeKeys.has("a");
     const right = activeKeys.has("ArrowRight") || activeKeys.has("d");
     if (gameActive && !quizOpen && !state.done) {
+      const previousX = player.x;
       if (left) { player.x -= 2.3 * dt; player.direction = -1; }
       if (right) { player.x += 2.3 * dt; player.direction = 1; }
       player.x = Math.max(18, Math.min(465, player.x));
@@ -400,9 +494,20 @@
       player.y += player.vy * dt;
       if (!player.grounded) player.vy += .42 * dt;
       if (player.y >= floorY) { player.y = floorY; player.vy = 0; player.grounded = true; }
+      const hitGate = airlockGates().find((gate) => Math.abs(player.x - gate.x) < 15 && player.y > gate.top + 2);
+      if (hitGate) {
+        player.x = previousX; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true;
+        if (performance.now() - lastGateHitAt > 650) {
+          lastGateHitAt = performance.now(); state.gateWarningUntil = lastGateHitAt + 1700;
+          burstPixels(hitGate.x, hitGate.top + 8, ["#ffe08a", "#e77a6b", "#ffffff"], 9);
+          const wrap = $("game-wrap"); wrap.classList.remove("shake"); void wrap.offsetWidth; wrap.classList.add("shake");
+          window.setTimeout(() => wrap.classList.remove("shake"), 240);
+          updateHud(); window.setTimeout(updateHud, 1800);
+        }
+      }
     }
     drawRoom(time);
-    updateHud();
+    drawParticles(dt);
     requestAnimationFrame(draw);
   }
 
@@ -411,7 +516,7 @@
     $("room-kicker").textContent = r.kicker;
     $("room-title").textContent = r.title;
     $("room-count").innerHTML = `ROOM 0${state.room + 1} <span>/ 0${data.rooms.length}</span>`;
-    $("field-note").textContent = roomNotes[state.room];
+    $("field-note").textContent = room().note || "Mission data is waiting to be scanned.";
     const total = data.rooms.reduce((n, entry) => n + entry.challenges.length, 0);
     const complete = data.rooms.reduce((n, entry, i) => n + state.stages[i], 0);
     $("hud-progress").textContent = `DATA ${String(Math.round(complete / total * 100)).padStart(2, "0")}%`;
@@ -429,12 +534,13 @@
     const currentChallenge = stage();
     const neededArtifact = currentChallenge?.artifact && !evidenceFound() ? currentChallenge.artifact : null;
     $("objective-text").textContent = roomComplete()
-      ? (state.room < data.rooms.length - 1 ? "Door unlocked. Press E at the exit to continue." : "All missions cleared. Paxsi is just ahead!")
+      ? (state.room < data.rooms.length - 1 ? "Jump over both energy gates, then press E at the airlock." : "All missions cleared. Paxsi is just ahead!")
       : neededArtifact ? `Search this room for the ${neededArtifact.name}. Move close to scan it.`
       : currentChallenge?.artifact ? "Evidence recovered. Return to the console to reopen the briefing."
       : "Find the mission console and press E.";
-    $("status-text").textContent = state.done ? "PAXSI RESCUED" : roomComplete() ? "EXIT UNLOCKED" : "SYSTEMS NOMINAL";
-    $("status-chip").querySelector(".status-light").style.background = state.done ? "#c7f36b" : roomComplete() ? "#8bd9f5" : "#c7f36b";
+    const gateWarning = state.gateWarningUntil > performance.now();
+    $("status-text").textContent = state.done ? "PAXSI RESCUED" : gateWarning ? "ENERGY GATE · JUMP!" : roomComplete() ? "EXIT UNLOCKED" : "SYSTEMS NOMINAL";
+    $("status-chip").querySelector(".status-light").style.background = state.done ? "#c7f36b" : gateWarning ? "#e77a6b" : roomComplete() ? "#8bd9f5" : "#c7f36b";
     if (all === data.rooms.length && !state.done) finishGame();
   }
 
@@ -449,7 +555,13 @@
     $("lesson-view").classList.remove("hidden");
     $("question-view").classList.add("hidden");
     $("lesson-title").textContent = challenge.title;
-    $("lesson-body").textContent = challenge.lesson || "Review the mission notes, then use what you learned to answer.";
+    const conciseBrief = challenge.brief || (challenge.artifact
+      ? `Mission Control: the ${challenge.artifact.name} contains the key data for this test.`
+      : challenge.lesson || "Review the mission notes, then use what you learned to answer.");
+    $("lesson-body").textContent = conciseBrief;
+    $("lesson-full").textContent = challenge.lesson || conciseBrief;
+    $("lesson-more").classList.toggle("hidden", !challenge.lesson || challenge.lesson === conciseBrief);
+    $("lesson-more").open = false;
     $("paxsi-lesson").textContent = challenge.paxsiTip || "Take a breath, read the briefing, and look for the clue that matches the mission.";
     const evidenceCard = $("evidence-found");
     if (challenge.artifact && evidenceFound()) {
@@ -494,6 +606,10 @@
   function checkAnswer(correct, button, challenge) {
     if (correct) {
       if (button) button.classList.add("correct");
+      const card = $("quiz-overlay").querySelector(".overlay-card");
+      card.classList.remove("answer-pop"); void card.offsetWidth; card.classList.add("answer-pop");
+      window.setTimeout(() => card.classList.remove("answer-pop"), 500);
+      burstPixels(player.x, player.y - 17, ["#c9d77b", "#ffe08a", "#f4f0d3"], 24);
       $("quiz-feedback").textContent = "Correct! Data accepted. The next lock is responding.";
       $("quiz-feedback").className = "quiz-feedback good";
       $("attempts-label").textContent = "ACCESS GRANTED";
