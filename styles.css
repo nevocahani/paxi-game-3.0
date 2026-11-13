@@ -159,3 +159,4 @@ body{background:#111a20;font-family:var(--sans)}
 .status-chip{gap:10px;padding:9px 12px;border:1px solid #3b4848;background:#192328;border-radius:3px;font-size:12px;letter-spacing:.09em;color:#e7eadc}
 .status-chip .status-light{width:8px;height:8px;flex:0 0 8px;box-shadow:0 0 9px currentColor}
 @media(max-width:700px){.status-chip{font-size:10px;padding:8px 9px;gap:8px}}
+#canvas-hint{display:none!important}
