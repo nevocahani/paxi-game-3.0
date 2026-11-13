@@ -180,3 +180,7 @@ body{background:#111a20;font-family:var(--sans)}
 .matching-select:focus{outline:1px solid var(--lime);border-color:var(--lime)}
 .matching-answer>.primary-button{grid-column:1/-1}
 @media(max-width:700px){.matching-answer{grid-template-columns:1fr}.matching-row{padding:6px}.matching-select{font-size:11px}}
+.game-alert{position:absolute;z-index:4;top:43%;left:50%;display:flex;align-items:center;gap:12px;padding:12px 20px;background:#241d15ed;border:2px solid #ffe08a;border-radius:3px;box-shadow:0 0 0 4px #101721aa,0 0 28px #ffb36b88;transform:translate(-50%,-50%);font:700 22px/1 var(--mono);letter-spacing:.1em;color:#fff0bd;white-space:nowrap;pointer-events:none}
+.game-alert-icon{font-size:27px;color:#ffe08a;text-shadow:0 0 12px #ffb36b}
+.game-alert small{display:block;margin-top:7px;font-size:10px;letter-spacing:.14em;color:#f2c78a}
+@media(max-width:700px){.game-alert{top:42%;gap:8px;padding:9px 12px;font-size:16px}.game-alert-icon{font-size:21px}.game-alert small{font-size:8px}}
