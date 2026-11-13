@@ -7,9 +7,9 @@
     <meta name="description" content="A pixel-art Artemis space escape room. Help the astronauts rescue Paxi!" />
     <title>Rescue Paxi! — Artemis Escape Room</title>
     <link rel="icon" type="image/png" href="./logo-pixelart-512-preview.png" />
-    <link rel="stylesheet" href="./styles.css?v=2026-11-13-19" />
-    <script src="./questions.js?v=2026-11-13-19" defer></script>
-    <script src="./game.js?v=2026-11-13-19" defer></script>
+    <link rel="stylesheet" href="./styles.css?v=2026-11-13-20" />
+    <script src="./questions.js?v=2026-11-13-20" defer></script>
+    <script src="./game.js?v=2026-11-13-21" defer></script>
   </head>
   <body>
     <main class="shell" id="top">
@@ -33,6 +33,10 @@
             <canvas id="game" width="480" height="270" tabindex="0" aria-label="Pixel-art game. Use A and D or the arrow keys to move, Space to jump, and E to interact."></canvas>
             <div class="canvas-scanlines" aria-hidden="true"></div>
             <div class="canvas-hud"><span><i class="hud-dot"></i> LIVE FEED</span><span id="hud-progress">DATA 00%</span></div>
+            <div class="game-alert hidden" id="game-alert" role="status" aria-live="polite">
+              <span class="game-alert-icon">▲</span>
+              <span>JUMP!<small>ENERGY FIELD AHEAD</small></span>
+            </div>
             <div class="touch-controls hidden" id="touch-controls" aria-label="Touch game controls">
               <div class="touch-movement"><button type="button" id="touch-left" aria-label="Move left">◀</button><button type="button" id="touch-right" aria-label="Move right">▶</button></div>
               <div class="touch-actions"><button type="button" id="touch-jump">JUMP</button><button type="button" id="touch-use">USE</button></div>
