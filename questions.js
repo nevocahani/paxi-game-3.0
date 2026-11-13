@@ -6,11 +6,12 @@ window.GAME_DATA = {
       title: "Artemis I",
       kicker: "MISSION 01 / LUNAR ORBIT",
       subtitle: "THE UNCREWED TEST FLIGHT",
-      note: "A strange signal is coming from the Moon's far side. The Zippy Tribe is guarding the next door.",
+      note: "LANDING ZONE / Leave the Orion lander, follow the stairs, and reach the mission console.",
       paxsiLine: "“Can you hear me out there?”",
       challenges: [
         {
           type: "question",
+          brief: "Artemis I was an uncrewed end-to-end test of SLS, Orion, and Orion’s heat shield before astronauts flew.",
           title: "A test flight with a purpose",
           lesson: "Artemis I was an uncrewed test flight. The Orion spacecraft traveled around the Moon and returned to Earth so NASA could check the full spacecraft, including its heat shield, before flying people.",
           paxsiTip: "The important clue is why the flight had no crew: NASA wanted to test Orion in real deep-space conditions before astronauts relied on it.",
@@ -26,6 +27,7 @@ window.GAME_DATA = {
         },
         {
           type: "question",
+          brief: "Orion re-entered Earth’s atmosphere at about 40,000 km/h, putting its heat shield to the test.",
           title: "The fiery return",
           lesson: "At the end of Artemis I, Orion came back through Earth's atmosphere at about 40,000 kilometers per hour. The heat shield had to protect the capsule during that extremely fast return.",
           paxsiTip: "Look for the speed with four zeros after the 4. That same first digit will help you open the next lock.",
@@ -36,6 +38,7 @@ window.GAME_DATA = {
         },
         {
           type: "code",
+          brief: "The escape code combines Question 1 with the first digit of Orion’s 40,000 km/h return speed.",
           title: "Unlock the restraints",
           lesson: "The first answer was question 1. Orion's return speed was about 40,000 km/h, so its first digit is 4. Join the question number and that digit to make the code.",
           paxsiTip: "You already found both pieces. Put them together in that order — no extra calculation needed.",
@@ -50,7 +53,7 @@ window.GAME_DATA = {
       title: "Artemis II",
       kicker: "MISSION 02 / CREWED LUNAR FLYBY",
       subtitle: "THE FIRST CREWED ORION FLIGHT",
-      note: "ORION FLIGHT ARCHIVE / Search the room for crew logs, systems modules, and the recovery beacon. Scan each find to unlock its challenge.",
+      note: "ORBITAL FLIGHT DECK / Scan the glowing mission evidence. Jump over the active energy gates to reach the next find.",
       paxsiLine: "“I can see your signal getting closer!”",
       challenges: [
         {
@@ -135,7 +138,7 @@ window.GAME_DATA = {
       title: "Artemis III",
       kicker: "MISSION 03 / LANDER DEMONSTRATIONS",
       subtitle: "TESTING THE NEXT LUNAR LANDERS",
-      note: "LANDER TEST BAY / Search the test rig for mission tags, docking targets, and crew records. Each scan reveals the next challenge.",
+      note: "LANDER TEST BAY / Scan the test tags and docking targets. Use the lit platforms and jump the energy gates.",
       paxsiLine: "“I'm right behind that door. Hurry!”",
       challenges: [
         {
