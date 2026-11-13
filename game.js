@@ -9,6 +9,8 @@
   const assets = {
     scene: image(data.assets.scene),
     lander: image(data.assets.lander),
+    rocket: image(data.assets.rocket),
+    ship: image(data.assets.ship),
     groundTop: image(data.assets.groundTop),
     groundFill: image(data.assets.groundFill),
     logo: image(data.assets.logo),
@@ -27,19 +29,42 @@
     keyed.width = assets.lander.naturalWidth; keyed.height = assets.lander.naturalHeight;
     const keyedCtx = keyed.getContext("2d", { willReadFrequently: true });
     keyedCtx.drawImage(assets.lander, 0, 0);
-    const frame = keyedCtx.getImageData(0, 0, keyed.width, keyed.height);
-    const pixels = frame.data;
-    let visiblePixels = 0;
-    for (let i = 0; i < pixels.length; i += 4) {
-      const high = Math.max(pixels[i], pixels[i + 1], pixels[i + 2]);
-      const low = Math.min(pixels[i], pixels[i + 1], pixels[i + 2]);
-      // The supplied sprite has a flat charcoal backdrop; preserve its navy outlines.
-      if (high < 42 && high - low < 8) pixels[i + 3] = 0;
-      if (pixels[i + 3]) visiblePixels++;
+    const frame = keyedCtx.getImageData(0, 0, keyed.width, keyed.height), pixels = frame.data;
+    const total = keyed.width * keyed.height, queue = new Int32Array(total);
+    let head = 0, tail = 0;
+    const addWhiteBackground = (index) => {
+      const p = index * 4;
+      const high = Math.max(pixels[p], pixels[p + 1], pixels[p + 2]);
+      const low = Math.min(pixels[p], pixels[p + 1], pixels[p + 2]);
+      if (pixels[p + 3] && low > 218 && high - low < 30) {
+        pixels[p + 3] = 0; queue[tail++] = index;
+      }
+    };
+    for (let x = 0; x < keyed.width; x++) {
+      addWhiteBackground(x); addWhiteBackground((keyed.height - 1) * keyed.width + x);
     }
-    if (!visiblePixels) return;
+    for (let y = 1; y < keyed.height - 1; y++) {
+      addWhiteBackground(y * keyed.width); addWhiteBackground(y * keyed.width + keyed.width - 1);
+    }
+    while (head < tail) {
+      const index = queue[head++], x = index % keyed.width, y = (index / keyed.width) | 0;
+      if (x) addWhiteBackground(index - 1);
+      if (x + 1 < keyed.width) addWhiteBackground(index + 1);
+      if (y) addWhiteBackground(index - keyed.width);
+      if (y + 1 < keyed.height) addWhiteBackground(index + keyed.width);
+    }
     keyedCtx.putImageData(frame, 0, 0);
-    assets.landerPixels = keyed;
+    let minX = keyed.width, minY = keyed.height, maxX = -1, maxY = -1;
+    for (let y = 0; y < keyed.height; y++) for (let x = 0; x < keyed.width; x++) {
+      if (pixels[(y * keyed.width + x) * 4 + 3]) {
+        minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+      }
+    }
+    if (maxX < minX || maxY < minY) return;
+    const cropped = document.createElement("canvas");
+    cropped.width = maxX - minX + 1; cropped.height = maxY - minY + 1;
+    cropped.getContext("2d").drawImage(keyed, minX, minY, cropped.width, cropped.height, 0, 0, cropped.width, cropped.height);
+    assets.landerPixels = cropped;
   }
   if (assets.lander.complete) prepareLander();
   else assets.lander.addEventListener("load", prepareLander, { once: true });
@@ -93,10 +118,12 @@
       if (assets.paxsiPixels[index]) {
         const spriteUrl = assets.paxsiPixels[index].toDataURL();
         const introImage = $("intro-paxsi") || document.querySelector(".intro-icon img");
+        const storyImage = $("story-paxi");
         const briefingImage = $("briefing-paxsi");
         const worldPaxsiImage = $("world-paxsi");
-        const endingImageElement = $("paxsi-image");
+        const endingImageElement = $("paxi-image");
         if (index === 0 && introImage) introImage.src = spriteUrl;
+        if (index === 0 && storyImage) storyImage.src = spriteUrl;
         if (index === 0 && briefingImage) briefingImage.src = spriteUrl;
         if (index === 0 && worldPaxsiImage) worldPaxsiImage.src = spriteUrl;
         if (state?.done && index === 0 && endingImageElement) endingImageElement.src = spriteUrl;
@@ -109,6 +136,7 @@
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey));
       if (!saved || !Array.isArray(saved.stages) || saved.stages.length !== data.rooms.length) return freshState();
+      delete saved.gateWarningUntil;
       const fresh = freshState();
       return { ...fresh, ...saved, stages: saved.stages.map((n, i) => Math.max(0, Math.min(data.rooms[i].challenges.length, Number(n) || 0))), evidence: fresh.evidence.map((roomEvidence, i) => roomEvidence.map((_, j) => Boolean(saved.evidence?.[i]?.[j]))), room: Math.max(0, Math.min(data.rooms.length - 1, Number(saved.room) || 0)) };
     } catch { return freshState(); }
@@ -131,18 +159,21 @@
   let quizOpen = false;
   let gameActive = false;
   let attempts = 3;
+  let triedCodes = new Set();
   let activeKeys = new Set();
   let lastFrame = 0;
   let endingImage = 0;
   let particles = [];
   let lastGateHitAt = 0;
+  let gateWarningUntil = 0;
+  const airlockDoorX = 435;
   const room = () => data.rooms[state.room];
   const stage = () => room().challenges[state.stages[state.room]];
   const evidenceFound = (roomIndex = state.room, challengeIndex = state.stages[state.room]) => Boolean(state.evidence?.[roomIndex]?.[challengeIndex]);
   const roomComplete = (index = state.room) => state.stages[index] >= data.rooms[index].challenges.length;
   function airlockGates(roomIndex = state.room) {
     return roomComplete(roomIndex) && roomIndex < data.rooms.length - 1
-      ? [{ x: 376, top: 201 }, { x: 402, top: 201 }]
+      ? [{ x: 366, top: 201 }]
       : [];
   }
   function burstPixels(x, y, colors, count = 18) {
@@ -255,11 +286,16 @@
 
   function drawGround(roomIndex, accent) {
     if (roomIndex === 0) {
-      for (let x = 0; x < 480; x += 32) {
-        if (assets.groundTop.complete && assets.groundTop.naturalWidth) ctx.drawImage(assets.groundTop, x, 225, 32, 32);
-        else { ctx.fillStyle = "#34404a"; ctx.fillRect(x, 225, 32, 32); }
-        if (assets.groundFill.complete && assets.groundFill.naturalWidth) ctx.drawImage(assets.groundFill, x, 257, 32, 32);
+      ctx.fillStyle = "#555b62"; ctx.fillRect(0, 225, 480, 45);
+      ctx.fillStyle = "#a7a59b"; ctx.fillRect(0, 225, 480, 3);
+      ctx.fillStyle = "#777970";
+      for (let x = 13; x < 480; x += 37) {
+        const y = 233 + (x * 7 % 23);
+        ctx.fillRect(x, y, 2 + x % 3, 1);
+        ctx.fillRect((x + 17) % 480, y + 9, 2, 2);
       }
+      ctx.fillStyle = "#454b52";
+      for (let x = 25; x < 480; x += 71) ctx.fillRect(x, 225, 4, 1);
       return;
     }
     ctx.fillStyle = roomIndex === 1 ? "#263843" : "#303a39"; ctx.fillRect(0, 225, 480, 45);
@@ -301,7 +337,7 @@
     ctx.fillStyle = "#d7e3e9"; ctx.fillRect(consoleX - 11, 209, 22, 2);
     ctx.fillStyle = "#17232e"; ctx.fillRect(consoleX - 4, 217, 8, 8);
     // Door uses the team's 32x32 closed sprite, followed by its opening animation.
-    const doorX = 435;
+    const doorX = airlockDoorX;
     const isDoorOpen = roomComplete();
     let doorSprite = assets.doorClosed;
     if (isDoorOpen) {
@@ -316,11 +352,11 @@
       ctx.fillStyle = isDoorOpen ? "#b8ed76" : "#6e7a86"; ctx.fillRect(doorX - 11, 177, 22, 48);
     }
     drawAirlockGates(time, roomIndex);
-    // Use Paxsi's two supplied expressions as a small 32x32 pixel-art character.
+    // Keep Paxi behind the final airlock until the crew reaches the rescue room.
     const paxsiSprite = assets.paxsiPixels[Math.floor(time / 560) % Math.max(1, assets.paxsiPixels.length)];
-    if (paxsiSprite) {
+    if (roomIndex === 2 && paxsiSprite) {
       const bob = isDoorOpen ? 0 : Math.round(Math.sin(time / 360) * 1);
-      ctx.drawImage(paxsiSprite, (roomIndex === 0 ? 350 : 318) - 16, 193 + bob, 32, 32);
+      ctx.drawImage(paxsiSprite, 420 - 16, 193 + bob, 32, 32);
     }
     const challenge = stage();
     const artifact = challenge?.artifact;
@@ -338,12 +374,7 @@
     else { ctx.fillStyle = "#d4e5ed"; ctx.fillRect(player.x - 6, player.y - 25, 12, 25); ctx.fillStyle = "#cf554c"; ctx.fillRect(player.x - 6, player.y - 22, 12, 5); }
     // Clear, readable HTML speech and interaction bubbles sit above the pixel scene.
     const targetX = roomComplete() ? doorX : needsEvidence ? artifact.x : consoleX;
-    const canInteract = !needsEvidence && Math.abs(player.x - targetX) < 37 && player.grounded;
-    if (needsEvidence && Math.abs(player.x - artifact.x) < 23 && player.grounded) {
-      state.evidence[state.room][state.stages[state.room]] = true;
-      burstPixels(artifact.x, 202, [p.accent, "#f4f0d3", "#c9d77b"], 16);
-      save(); updateHud(); showQuiz();
-    }
+    const canInteract = Math.abs(player.x - targetX) < 37 && player.grounded;
     updateWorldDialogue(canInteract, targetX, needsEvidence ? artifact : null);
     // A faint beacon marks the console if the player is far away.
     if (!roomComplete() && !canInteract) { ctx.globalAlpha = .55 + Math.sin(time / 220) * .2; ctx.fillStyle = p.accent; ctx.fillRect(consoleX - 1, 182, 2, 2); ctx.globalAlpha = 1; }
@@ -358,7 +389,10 @@
       ctx.fillStyle = "#b9b1a2"; ctx.fillRect(91, 76, 15, 15); ctx.fillStyle = "#e2d6bd"; ctx.fillRect(95, 72, 7, 4);
       ctx.strokeStyle = "#b6d27d"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(73, 91, 35, 17, -.25, .1, Math.PI * 1.9); ctx.stroke();
       const dotX = 73 + Math.cos(time / 900) * 34, dotY = 91 + Math.sin(time / 900) * 15;
-      ctx.fillStyle = "#ffe08a"; ctx.fillRect(dotX - 2, dotY - 2, 5, 5);
+      if (assets.ship.complete && assets.ship.naturalWidth) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(assets.ship, Math.round(dotX - 12), Math.round(dotY - 12), 24, 24);
+      } else { ctx.fillStyle = "#ffe08a"; ctx.fillRect(dotX - 2, dotY - 2, 5, 5); }
       ctx.fillStyle = "#586a68"; ctx.fillRect(39, 130, 6, 95); ctx.fillRect(105, 130, 6, 95);
     } else if (roomIndex === 2) {
       // Artemis III lander test bay, docking target, and bright work lights.
@@ -368,6 +402,13 @@
       ctx.fillStyle = "#263f49"; ctx.fillRect(308, 86, 104, 55); ctx.fillStyle = "#a7dfe0"; ctx.fillRect(324, 101, 72, 4); ctx.fillRect(356, 89, 5, 49);
       ctx.fillStyle = "#ffe08a"; ctx.fillRect(351, 111, 15, 5); ctx.fillRect(356, 106, 5, 15);
       ctx.fillStyle = "#59677b"; ctx.fillRect(322, 141, 8, 84); ctx.fillRect(392, 141, 8, 84);
+      // The uploaded rocket sprite is displayed as a test vehicle on its own floor mount.
+      ctx.fillStyle = "#59677b"; ctx.fillRect(211, 220, 28, 5);
+      ctx.fillStyle = "#a7dfe0"; ctx.fillRect(215, 218, 20, 2);
+      if (assets.rocket.complete && assets.rocket.naturalWidth) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(assets.rocket, 213, 188, 24, 30);
+      }
     }
     ctx.globalAlpha = 1;
   }
@@ -446,13 +487,13 @@
     if (!gameActive || quizOpen || state.done) {
       bubble.classList.add("hidden"); prompt.classList.add("hidden"); return;
     }
-    const paxsiX = state.room === 0 ? 350 : 318;
-    const nearPaxsi = Math.abs(player.x - paxsiX) < 61;
+    const paxsiX = 420;
+    const nearPaxsi = state.room === 2 && Math.abs(player.x - paxsiX) < 54;
     const nearLander = state.room === 0 && Math.abs(player.x - 82) < 48;
     const nearArtifact = artifact && Math.abs(player.x - artifact.x) < 52;
-    const speaker = nearPaxsi ? "PAXSI" : "MISSION CONTROL";
+    const speaker = nearPaxsi ? "PAXI" : "MISSION CONTROL";
     const line = nearPaxsi ? room().paxsiLine : nearArtifact
-      ? `You found the ${artifact.name}. Moving closer will scan its mission data.`
+      ? `You found the ${artifact.name}. Get close and press E to scan its mission data.`
       : nearLander
       ? "Exit the lander and take the stairs down to the mission console."
       : roomComplete()
@@ -462,20 +503,24 @@
     if ($("world-dialogue-text").textContent !== line) $("world-dialogue-text").textContent = line;
     $("world-paxsi").classList.toggle("hidden", !nearPaxsi);
     bubble.dataset.speaker = nearPaxsi ? "paxsi" : "control";
-    bubble.style.left = `${(nearPaxsi ? paxsiX : nearArtifact || artifact ? artifact.x : nearLander ? 82 : targetX) / canvas.width * 100}%`;
+    const anchorX = nearPaxsi ? paxsiX : nearArtifact ? artifact.x : nearLander ? 82 : targetX;
+    bubble.style.left = `${Math.max(27, Math.min(73, anchorX / canvas.width * 100))}%`;
+    bubble.style.top = `${state.room === 0 ? 30 : 9}%`;
     bubble.classList.toggle("hidden", !nearPaxsi && !nearLander && !nearArtifact && !canInteract);
     prompt.classList.toggle("hidden", !canInteract && !nearArtifact);
     if (canInteract) {
+      prompt.classList.remove("auto-scan");
       $("world-interact-key").textContent = "E";
     prompt.style.left = `${Math.min(82, targetX / canvas.width * 100)}%`;
       $("world-interact-text").textContent = roomComplete()
-        ? (state.room === data.rooms.length - 1 ? "RESCUE PAXSI" : "ENTER NEXT ROOM")
-        : "OPEN MISSION BRIEFING";
+        ? (state.room === data.rooms.length - 1 ? "RESCUE PAXI" : "ENTER NEXT ROOM")
+        : artifact && !evidenceFound() ? `SCAN ${artifact.name.toUpperCase()}` : "OPEN MISSION BRIEFING";
     } else if (nearArtifact) {
-      $("world-interact-key").textContent = "✦";
+      prompt.classList.add("auto-scan");
+      $("world-interact-key").textContent = "E";
       prompt.style.left = `${Math.min(82, artifact.x / canvas.width * 100)}%`;
-      $("world-interact-text").textContent = `SCAN ${artifact.name.toUpperCase()}`;
-    }
+      $("world-interact-text").textContent = `MOVE CLOSER TO SCAN ${artifact.name.toUpperCase()}`;
+    } else prompt.classList.remove("auto-scan");
   }
 
   function draw(time = 0) {
@@ -494,11 +539,11 @@
       player.y += player.vy * dt;
       if (!player.grounded) player.vy += .42 * dt;
       if (player.y >= floorY) { player.y = floorY; player.vy = 0; player.grounded = true; }
-      const hitGate = airlockGates().find((gate) => Math.abs(player.x - gate.x) < 15 && player.y > gate.top + 2);
+      const hitGate = player.vy >= 0 ? airlockGates().find((gate) => Math.abs(player.x - gate.x) < 9 && player.y > gate.top + 2) : null;
       if (hitGate) {
         player.x = previousX; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true;
         if (performance.now() - lastGateHitAt > 650) {
-          lastGateHitAt = performance.now(); state.gateWarningUntil = lastGateHitAt + 1700;
+          lastGateHitAt = performance.now(); gateWarningUntil = lastGateHitAt + 1700;
           burstPixels(hitGate.x, hitGate.top + 8, ["#ffe08a", "#e77a6b", "#ffffff"], 9);
           const wrap = $("game-wrap"); wrap.classList.remove("shake"); void wrap.offsetWidth; wrap.classList.add("shake");
           window.setTimeout(() => wrap.classList.remove("shake"), 240);
@@ -533,21 +578,32 @@
     const all = state.stages.reduce((n, x, i) => n + (x >= data.rooms[i].challenges.length ? 1 : 0), 0);
     const currentChallenge = stage();
     const neededArtifact = currentChallenge?.artifact && !evidenceFound() ? currentChallenge.artifact : null;
-    $("objective-text").textContent = roomComplete()
-      ? (state.room < data.rooms.length - 1 ? "Jump over both energy gates, then press E at the airlock." : "All missions cleared. Paxsi is just ahead!")
-      : neededArtifact ? `Search this room for the ${neededArtifact.name}. Move close to scan it.`
+    $("objective-text").textContent = state.done ? "Paxi is safe. Return to Earth together."
+      : roomComplete()
+      ? (state.room < data.rooms.length - 1 ? "Jump over the energy gate, then press E at the airlock." : "All missions cleared. Paxi is just ahead!")
+      : neededArtifact ? `Search for the ${neededArtifact.name}, move close, and press E to scan it.`
       : currentChallenge?.artifact ? "Evidence recovered. Return to the console to reopen the briefing."
       : "Find the mission console and press E.";
-    const gateWarning = state.gateWarningUntil > performance.now();
-    $("status-text").textContent = state.done ? "PAXSI RESCUED" : gateWarning ? "ENERGY GATE · JUMP!" : roomComplete() ? "EXIT UNLOCKED" : "SYSTEMS NOMINAL";
+    const gateWarning = gateWarningUntil > performance.now();
+    $("status-text").textContent = state.done ? "PAXI RESCUED" : gateWarning ? "ENERGY GATE · JUMP!" : roomComplete() ? "EXIT UNLOCKED" : "SYSTEMS NOMINAL";
     $("status-chip").querySelector(".status-light").style.background = state.done ? "#c7f36b" : gateWarning ? "#e77a6b" : roomComplete() ? "#8bd9f5" : "#c7f36b";
     if (all === data.rooms.length && !state.done) finishGame();
   }
 
   function showQuiz() {
     if (roomComplete()) return;
+    $("touch-controls").classList.add("hidden");
     quizOpen = true; attempts = 3;
     const challenge = stage();
+    const previous = state.stages[state.room] > 0 ? room().challenges[state.stages[state.room] - 1] : null;
+    const recap = $("previous-recap");
+    recap.classList.toggle("hidden", !previous);
+    if (previous) {
+      $("previous-recap-title").textContent = previous.title;
+      $("previous-recap-answer").textContent = previous.type === "code"
+        ? "Code entered: " + previous.answer + "."
+        : previous.options?.[previous.answerIndex] || previous.prompt;
+    }
     $("quiz-overlay").classList.remove("hidden");
     $("quiz-room-label").textContent = room().title.toUpperCase();
     $("quiz-number").textContent = `CHALLENGE ${String(state.stages[state.room] + 1).padStart(2, "0")} / ${String(room().challenges.length).padStart(2, "0")}`;
@@ -586,13 +642,20 @@
     $("quiz-prompt").textContent = challenge.prompt;
     $("quiz-feedback").textContent = ""; $("quiz-feedback").className = "quiz-feedback";
     attempts = 3;
+    triedCodes = new Set();
     $("attempts-label").textContent = "ATTEMPTS LEFT: 3";
     const answers = $("answer-list"); answers.replaceChildren();
     if (challenge.type === "code") {
       const form = document.createElement("form"); form.className = "code-form";
-      const input = document.createElement("input"); input.className = "code-input"; input.id = "code-input"; input.inputMode = "numeric"; input.autocomplete = "off"; input.maxLength = 4; input.setAttribute("aria-label", "Enter the escape code"); input.placeholder = "••";
+      const input = document.createElement("input"); input.type = "text"; input.className = "code-input"; input.id = "code-input"; input.inputMode = "numeric"; input.pattern = "[0-9]*"; input.autocomplete = "off"; input.maxLength = 2; input.setAttribute("aria-label", "Enter the two-digit escape code"); input.placeholder = "••";
+      input.addEventListener("input", () => { input.value = input.value.replace(/\D/g, "").slice(0, 2); });
+      input.addEventListener("keydown", (event) => event.stopPropagation());
       const button = document.createElement("button"); button.className = "primary-button"; button.type = "submit"; button.textContent = "UNLOCK →";
-      form.append(input, button); form.addEventListener("submit", (event) => { event.preventDefault(); checkAnswer(input.value.trim() === challenge.answer, null, challenge); }); answers.append(form);
+      form.append(input, button); form.addEventListener("submit", (event) => {
+        event.preventDefault(); const code = input.value.trim();
+        if (triedCodes.has(code)) { $("quiz-feedback").textContent = "You already tried that code."; return; }
+        triedCodes.add(code); checkAnswer(code === challenge.answer, null, challenge);
+      }); answers.append(form);
     } else {
       challenge.options.forEach((option, index) => {
         const button = document.createElement("button"); button.type = "button"; button.className = "answer-option";
@@ -619,52 +682,64 @@
         if (roomComplete() && state.room === data.rooms.length - 1) finishGame();
         save(); closeQuiz(); updateHud();
         if (!state.done && !roomComplete() && !stage().artifact) showQuiz();
-      }, 750);
+      }, 1650);
       return;
     }
-    if (button) button.classList.add("wrong");
+    if (button) { button.classList.add("wrong"); button.disabled = true; }
     attempts -= 1;
     $("attempts-label").textContent = `ATTEMPTS LEFT: ${attempts}`;
     if (attempts > 0) {
       $("quiz-feedback").textContent = challenge.type === "code" ? "That code didn't work. Try again." : "Not quite. Try another answer.";
-      window.setTimeout(() => button?.classList.remove("wrong"), 450);
+      // Keep a wrong option disabled for the rest of this question to prevent repeat-click retries.
     } else {
-      $("quiz-feedback").textContent = "Three strikes. The airlock is sending you back one room…";
+      $("quiz-feedback").textContent = state.room === 0
+        ? "Three strikes. Back to the lander console. Review the clues and try again."
+        : "Three strikes. The airlock is sending you back one room…";
       $("answer-list").querySelectorAll("button").forEach((el) => { el.disabled = true; });
       window.setTimeout(() => retreat(), 1100);
     }
   }
-  function closeQuiz() { quizOpen = false; $("quiz-overlay").classList.add("hidden"); activeKeys.clear(); }
+  function closeQuiz() { quizOpen = false; $("quiz-overlay").classList.add("hidden"); activeKeys.clear(); if (gameActive && !state.done) $("touch-controls").classList.remove("hidden"); }
   function retreat() {
-    closeQuiz(); state.room = Math.max(0, state.room - 1); player.x = state.room === 0 ? 82 : 420; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true; save(); updateHud();
+    closeQuiz(); gateWarningUntil = 0; state.room = Math.max(0, state.room - 1); player.x = state.room === 0 ? 82 : 420; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true; save(); updateHud();
   }
   function advanceRoom() {
     if (!roomComplete()) { showQuiz(); return; }
-    if (state.room < data.rooms.length - 1) { state.room += 1; player.x = 40; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true; save(); updateHud(); }
+    if (state.room < data.rooms.length - 1) { gateWarningUntil = 0; state.room += 1; player.x = 40; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true; save(); updateHud(); }
   }
   function interact() {
     if (!gameActive || state.done || quizOpen) return;
-    if (!roomComplete() && stage()?.artifact && !evidenceFound()) return;
-    const targetX = roomComplete() ? 435 : missionConsoleX();
+    if (!roomComplete() && stage()?.artifact && !evidenceFound()) {
+      const artifact = stage().artifact;
+      if (Math.abs(player.x - artifact.x) >= 37 || !player.grounded) return;
+      state.evidence[state.room][state.stages[state.room]] = true;
+      burstPixels(artifact.x, 202, ["#c9d77b", "#f4f0d3", "#8bd9f5"], 16);
+      save(); updateHud(); showQuiz();
+      return;
+    }
+    const targetX = roomComplete() ? airlockDoorX : missionConsoleX();
     if (Math.abs(player.x - targetX) >= 37) return;
     if (roomComplete()) advanceRoom(); else showQuiz();
   }
   function finishGame() {
     if (state.done) return;
     state.done = true; state.started = true; gameActive = false; save();
+    $("touch-controls").classList.add("hidden");
     $("ending-overlay").classList.remove("hidden");
-    const endingImageElement = $("paxsi-image");
+    const endingImageElement = $("paxi-image");
     if (endingImageElement) endingImageElement.src = paxsiDataUrl(endingImage % assets.paxsi.length);
+    updateHud();
   }
   function startGame() {
     $("intro-step").classList.add("hidden"); $("story-step").classList.remove("hidden");
   }
   function beginMission() {
-    state.started = true; gameActive = true; $("start-overlay").classList.add("hidden"); save();
+    state.started = true; gameActive = true; $("touch-controls").classList.remove("hidden"); $("start-overlay").classList.add("hidden"); save();
     canvas.focus({ preventScroll: true });
   }
   function resetGame() {
     state = freshState(); gameActive = false; player.x = 82; player.y = groundYAt(player.x); player.vy = 0; player.grounded = true;
+    gateWarningUntil = 0; $("touch-controls").classList.add("hidden");
     localStorage.removeItem(storageKey); $("ending-overlay").classList.add("hidden"); $("quiz-overlay").classList.add("hidden");
     quizOpen = false; $("intro-step").classList.remove("hidden"); $("story-step").classList.add("hidden"); $("start-label").textContent = "START MISSION"; updateHud(); $("start-overlay").classList.remove("hidden");
   }
@@ -676,6 +751,8 @@
 
   window.addEventListener("keydown", (event) => {
     const key = controlKey(event);
+    const editingCode = event.target instanceof HTMLElement && event.target.id === "code-input";
+    if (editingCode) return;
     if (["ArrowLeft", "ArrowRight", "ArrowUp", " "].includes(key)) event.preventDefault();
     if (["ArrowLeft", "ArrowRight", "a", "d"].includes(key)) activeKeys.add(key);
     if ((key === " " || key === "ArrowUp" || key === "w") && gameActive && !quizOpen && player.grounded) { event.preventDefault(); player.vy = -6.8; player.grounded = false; player.frame = 0; }
@@ -684,6 +761,23 @@
   });
   window.addEventListener("keyup", (event) => { const key = controlKey(event); activeKeys.delete(key); activeKeys.delete(key.toLowerCase()); });
   window.addEventListener("blur", () => activeKeys.clear());
+  function bindTouchControls() {
+    const hold = (id, key) => {
+      const button = $(id);
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault(); button.setPointerCapture?.(event.pointerId); activeKeys.add(key);
+      });
+      const release = (event) => { event.preventDefault(); activeKeys.delete(key); };
+      button.addEventListener("pointerup", release); button.addEventListener("pointercancel", release);
+      button.addEventListener("lostpointercapture", () => activeKeys.delete(key));
+    };
+    hold("touch-left", "a"); hold("touch-right", "d");
+    $("touch-jump").addEventListener("pointerdown", (event) => {
+      event.preventDefault(); if (gameActive && !quizOpen && player.grounded) { player.vy = -6.8; player.grounded = false; player.frame = 0; }
+    });
+    $("touch-use").addEventListener("pointerdown", (event) => { event.preventDefault(); interact(); });
+  }
+  bindTouchControls();
   $("start-button").addEventListener("click", startGame);
   $("begin-mission-button").addEventListener("click", beginMission);
   $("back-to-title").addEventListener("click", () => { $("story-step").classList.add("hidden"); $("intro-step").classList.remove("hidden"); });
@@ -691,7 +785,7 @@
   $("play-again").addEventListener("click", resetGame);
   if (state.done) {
     $("ending-overlay").classList.remove("hidden");
-    const endingImageElement = $("paxsi-image");
+    const endingImageElement = $("paxi-image");
     if (endingImageElement) endingImageElement.src = paxsiDataUrl(0);
   } else {
     $("start-label").textContent = state.started ? "RESUME MISSION" : "START MISSION";
